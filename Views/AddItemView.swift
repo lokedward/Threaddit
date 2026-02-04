@@ -16,6 +16,8 @@ struct AddItemView: View {
     @State private var selectedImage: UIImage?
     @State private var showingImageSourcePicker = true
     @State private var showingCamera = false
+    @State private var showingImageCropper = false
+    @State private var imageToCrop: UIImage?
     
     // Metadata
     @State private var name = ""
@@ -43,9 +45,22 @@ struct AddItemView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                             .listRowInsets(EdgeInsets())
                             .listRowBackground(Color.clear)
+                            .onTapGesture {
+                                imageToCrop = image
+                                showingImageCropper = true
+                            }
                         
-                        Button("Change Photo") {
-                            showingImageSourcePicker = true
+                        HStack {
+                            Button("Edit Photo") {
+                                imageToCrop = selectedImage
+                                showingImageCropper = true
+                            }
+                            
+                            Spacer()
+                            
+                            Button("Change Photo") {
+                                showingImageSourcePicker = true
+                            }
                         }
                     } else {
                         Button {
@@ -119,14 +134,25 @@ struct AddItemView: View {
                 Button("Cancel", role: .cancel) {}
             }
             .fullScreenCover(isPresented: $showingCamera) {
-                CameraView(image: $selectedImage)
+                CameraView(image: $imageToCrop, showCropper: $showingImageCropper)
+            }
+            .fullScreenCover(isPresented: $showingImageCropper) {
+                if let image = imageToCrop {
+                    ImageCropperView(image: image) { croppedImage in
+                        selectedImage = croppedImage
+                        showingImageCropper = false
+                    } onCancel: {
+                        showingImageCropper = false
+                    }
+                }
             }
             .onChange(of: selectedPhotoItem) { _, newValue in
                 Task {
                     if let data = try? await newValue?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
                         await MainActor.run {
-                            selectedImage = uiImage
+                            imageToCrop = uiImage
+                            showingImageCropper = true
                         }
                     }
                 }
@@ -146,11 +172,8 @@ struct AddItemView: View {
         
         isSaving = true
         
-        // Process image (crop to square)
-        let croppedImage = cropToSquare(image)
-        
-        // Save image to disk
-        guard let imageID = ImageStorageService.shared.saveImage(croppedImage) else {
+        // Save image to disk (already cropped by user)
+        guard let imageID = ImageStorageService.shared.saveImage(image) else {
             isSaving = false
             return
         }
@@ -175,8 +198,99 @@ struct AddItemView: View {
         
         dismiss()
     }
+}
+
+// MARK: - Image Cropper View
+struct ImageCropperView: View {
+    let image: UIImage
+    let onSave: (UIImage) -> Void
+    let onCancel: () -> Void
     
-    private func cropToSquare(_ image: UIImage) -> UIImage {
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geometry in
+                let cropSize = min(geometry.size.width, geometry.size.height) - 40
+                
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    // Image with gestures
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    let delta = value / lastScale
+                                    lastScale = value
+                                    scale = min(max(scale * delta, 1.0), 5.0)
+                                }
+                                .onEnded { _ in
+                                    lastScale = 1.0
+                                }
+                        )
+                        .simultaneousGesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    offset = CGSize(
+                                        width: lastOffset.width + value.translation.width,
+                                        height: lastOffset.height + value.translation.height
+                                    )
+                                }
+                                .onEnded { _ in
+                                    lastOffset = offset
+                                }
+                        )
+                    
+                    // Crop overlay
+                    CropOverlay(cropSize: cropSize)
+                }
+            }
+            .navigationTitle("Crop Photo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.black, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        onCancel()
+                    }
+                    .foregroundColor(.white)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        let cropped = cropImage()
+                        onSave(cropped)
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    Button("Reset") {
+                        withAnimation {
+                            scale = 1.0
+                            offset = .zero
+                            lastOffset = .zero
+                        }
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+        }
+    }
+    
+    private func cropImage() -> UIImage {
+        // For simplicity, we'll crop to center square
+        // A more advanced implementation would use the exact viewport
         let size = min(image.size.width, image.size.height)
         let x = (image.size.width - size) / 2
         let y = (image.size.height - size) / 2
@@ -191,16 +305,72 @@ struct AddItemView: View {
     }
 }
 
-// Camera View using UIImagePickerController
+// MARK: - Crop Overlay
+struct CropOverlay: View {
+    let cropSize: CGFloat
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let centerX = geometry.size.width / 2
+            let centerY = geometry.size.height / 2
+            
+            ZStack {
+                // Semi-transparent overlay with hole
+                Rectangle()
+                    .fill(Color.black.opacity(0.5))
+                    .mask(
+                        ZStack {
+                            Rectangle()
+                            RoundedRectangle(cornerRadius: 8)
+                                .frame(width: cropSize, height: cropSize)
+                                .position(x: centerX, y: centerY)
+                                .blendMode(.destinationOut)
+                        }
+                        .compositingGroup()
+                    )
+                
+                // Crop frame border
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white, lineWidth: 2)
+                    .frame(width: cropSize, height: cropSize)
+                    .position(x: centerX, y: centerY)
+                
+                // Grid lines
+                Path { path in
+                    let third = cropSize / 3
+                    let left = centerX - cropSize / 2
+                    let top = centerY - cropSize / 2
+                    
+                    // Vertical lines
+                    path.move(to: CGPoint(x: left + third, y: top))
+                    path.addLine(to: CGPoint(x: left + third, y: top + cropSize))
+                    path.move(to: CGPoint(x: left + third * 2, y: top))
+                    path.addLine(to: CGPoint(x: left + third * 2, y: top + cropSize))
+                    
+                    // Horizontal lines
+                    path.move(to: CGPoint(x: left, y: top + third))
+                    path.addLine(to: CGPoint(x: left + cropSize, y: top + third))
+                    path.move(to: CGPoint(x: left, y: top + third * 2))
+                    path.addLine(to: CGPoint(x: left + cropSize, y: top + third * 2))
+                }
+                .stroke(Color.white.opacity(0.5), lineWidth: 0.5)
+            }
+            .allowsHitTesting(false)
+        }
+    }
+}
+
+// MARK: - Camera View
 struct CameraView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
+    @Binding var showCropper: Bool
     @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> UIImagePickerController {
         let picker = UIImagePickerController()
         picker.sourceType = .camera
         picker.delegate = context.coordinator
-        picker.allowsEditing = true
+        picker.allowsEditing = false // We'll use our own cropper
         return picker
     }
     
@@ -218,10 +388,9 @@ struct CameraView: UIViewControllerRepresentable {
         }
         
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
-            if let edited = info[.editedImage] as? UIImage {
-                parent.image = edited
-            } else if let original = info[.originalImage] as? UIImage {
+            if let original = info[.originalImage] as? UIImage {
                 parent.image = original
+                parent.showCropper = true
             }
             parent.dismiss()
         }
