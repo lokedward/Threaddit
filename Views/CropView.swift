@@ -45,37 +45,39 @@ struct CropView: View {
             GeometryReader { geometry in
                 ZStack {
                     // Image layer (zoomable/pannable)
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .scaleEffect(imageScale)
-                        .offset(imageOffset)
-                        .gesture(
-                            MagnificationGesture()
-                                .onChanged { value in
-                                    imageScale = lastScale * value
-                                }
-                                .onEnded { _ in
-                                    lastScale = imageScale
-                                }
-                        )
-                        .simultaneousGesture(
-                            DragGesture()
-                                .onChanged { value in
-                                    if !isDraggingCrop {
-                                        imageOffset = CGSize(
-                                            width: lastOffset.width + value.translation.width,
-                                            height: lastOffset.height + value.translation.height
-                                        )
+                    if imageFrame != .zero {
+                        Image(uiImage: image)
+                            .resizable()
+                            .frame(width: imageFrame.width, height: imageFrame.height)
+                            .position(x: imageFrame.midX, y: imageFrame.midY)
+                            .scaleEffect(imageScale)
+                            .offset(imageOffset)
+                            .gesture(
+                                MagnificationGesture()
+                                    .onChanged { value in
+                                        imageScale = lastScale * value
                                     }
-                                }
-                                .onEnded { _ in
-                                    if !isDraggingCrop {
-                                        lastOffset = imageOffset
+                                    .onEnded { _ in
+                                        lastScale = imageScale
                                     }
-                                }
-                        )
+                            )
+                            .simultaneousGesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        if !isDraggingCrop {
+                                            imageOffset = CGSize(
+                                                width: lastOffset.width + value.translation.width,
+                                                height: lastOffset.height + value.translation.height
+                                            )
+                                        }
+                                    }
+                                    .onEnded { _ in
+                                        if !isDraggingCrop {
+                                            lastOffset = imageOffset
+                                        }
+                                    }
+                            )
+                    }
                     
                     // Crop overlay
                     CropOverlay(
