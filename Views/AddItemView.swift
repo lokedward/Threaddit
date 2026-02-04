@@ -16,6 +16,7 @@ struct AddItemView: View {
     @State private var selectedImage: UIImage?
     @State private var showingImageSourcePicker = true
     @State private var showingCamera = false
+    @State private var showingPhotoPicker = false
     @State private var showingImageCropper = false
     @State private var imageToCrop: UIImage?
     
@@ -127,12 +128,13 @@ struct AddItemView: View {
                     showingCamera = true
                 }
                 
-                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    Text("Choose from Library")
+                Button("Choose from Library") {
+                    showingPhotoPicker = true
                 }
                 
                 Button("Cancel", role: .cancel) {}
             }
+            .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhotoItem, matching: .images)
             .fullScreenCover(isPresented: $showingCamera) {
                 CameraView(image: $imageToCrop, showCropper: $showingImageCropper)
             }
