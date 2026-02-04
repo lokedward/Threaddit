@@ -3,6 +3,7 @@
 
 import SwiftUI
 import SwiftData
+import PhotosUI
 
 struct ItemDetailView: View {
     @Environment(\.modelContext) private var modelContext
@@ -23,28 +24,70 @@ struct ItemDetailView: View {
     @State private var editCategory: Category?
     @State private var editTagsText = ""
     
+    // Image editing state
+    @State private var showingImageSourcePicker = false
+    @State private var showingCamera = false
+    @State private var showingPhotoPicker = false
+    @State private var showingImageCropper = false
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var imageToCrop: UIImage?
+    @State private var newImage: UIImage?
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 // Image
                 Group {
-                    if let image = itemImage {
+                    if let image = isEditing ? (newImage ?? itemImage) : itemImage {
                         Image(uiImage: image)
                             .resizable()
                             .aspectRatio(1, contentMode: .fit)
+                            .overlay(alignment: .bottomTrailing) {
+                                if isEditing {
+                                    Button {
+                                        showingImageSourcePicker = true
+                                    } label: {
+                                        Image(systemName: "camera.fill")
+                                            .font(.title2)
+                                            .foregroundColor(.white)
+                                            .padding(12)
+                                            .background(Circle().fill(.ultraThinMaterial))
+                                    }
+                                    .padding(12)
+                                }
+                            }
                     } else {
                         Rectangle()
                             .fill(Color.secondary.opacity(0.2))
                             .aspectRatio(1, contentMode: .fit)
                             .overlay {
-                                Image(systemName: "photo")
-                                    .font(.largeTitle)
-                                    .foregroundColor(.secondary)
+                                if isEditing {
+                                    Button {
+                                        showingImageSourcePicker = true
+                                    } label: {
+                                        VStack(spacing: 8) {
+                                            Image(systemName: "camera.fill")
+                                                .font(.largeTitle)
+                                            Text("Add Photo")
+                                                .font(.subheadline)
+                                        }
+                                        .foregroundColor(.secondary)
+                                    }
+                                } else {
+                                    Image(systemName: "photo")
+                                        .font(.largeTitle)
+                                        .foregroundColor(.secondary)
+                                }
                             }
                     }
                 }
                 .clipShape(RoundedRectangle(cornerRadius: 16))
                 .padding(.horizontal)
+                .onTapGesture {
+                    if isEditing {
+                        showingImageSourcePicker = true
+                    }
+                }
                 
                 // Details
                 VStack(spacing: 16) {
@@ -81,6 +124,49 @@ struct ItemDetailView: View {
             Button("Cancel", role: .cancel) {}
         } message: {
             Text("This will permanently remove \"\(item.name)\" from your closet.")
+        }
+        .confirmationDialog("Change Photo", isPresented: $showingImageSourcePicker) {
+            Button("Take Photo") {
+                showingCamera = true
+            }
+            
+            Button("Choose from Library") {
+                showingPhotoPicker = true
+            }
+            
+            if let image = newImage ?? itemImage {
+                Button("Edit Current Photo") {
+                    imageToCrop = image
+                    showingImageCropper = true
+                }
+            }
+            
+            Button("Cancel", role: .cancel) {}
+        }
+        .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhotoItem, matching: .images)
+        .fullScreenCover(isPresented: $showingCamera) {
+            CameraViewForEdit(image: $imageToCrop, showCropper: $showingImageCropper)
+        }
+        .fullScreenCover(isPresented: $showingImageCropper) {
+            if let image = imageToCrop {
+                ImageCropperViewForEdit(image: image) { croppedImage in
+                    newImage = croppedImage
+                    showingImageCropper = false
+                } onCancel: {
+                    showingImageCropper = false
+                }
+            }
+        }
+        .onChange(of: selectedPhotoItem) { _, newValue in
+            Task {
+                if let data = try? await newValue?.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    await MainActor.run {
+                        imageToCrop = uiImage
+                        showingImageCropper = true
+                    }
+                }
+            }
         }
         .onAppear {
             loadImage()
@@ -162,6 +248,21 @@ struct ItemDetailView: View {
     
     private var editingView: some View {
         VStack(spacing: 16) {
+            // Change Photo Button
+            Button {
+                showingImageSourcePicker = true
+            } label: {
+                HStack {
+                    Image(systemName: "photo.on.rectangle.angled")
+                    Text("Change Photo")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.accentColor.opacity(0.1))
+                .foregroundColor(.accentColor)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+            
             VStack(alignment: .leading, spacing: 8) {
                 Text("Name")
                     .font(.subheadline.weight(.medium))
@@ -208,7 +309,7 @@ struct ItemDetailView: View {
             }
             
             Button("Cancel", role: .cancel) {
-                isEditing = false
+                cancelEditing()
             }
             .padding(.top)
         }
@@ -224,7 +325,13 @@ struct ItemDetailView: View {
         editSize = item.size ?? ""
         editCategory = item.category
         editTagsText = item.tags.joined(separator: ", ")
+        newImage = nil
         isEditing = true
+    }
+    
+    private func cancelEditing() {
+        newImage = nil
+        isEditing = false
     }
     
     private func saveEdits() {
@@ -237,6 +344,19 @@ struct ItemDetailView: View {
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
         
+        // Save new image if changed
+        if let newImg = newImage {
+            // Delete old image
+            ImageStorageService.shared.deleteImage(withID: item.imageID)
+            
+            // Save new image
+            if let newImageID = ImageStorageService.shared.saveImage(newImg) {
+                item.imageID = newImageID
+                itemImage = newImg
+            }
+        }
+        
+        newImage = nil
         isEditing = false
     }
     
@@ -244,6 +364,198 @@ struct ItemDetailView: View {
         ImageStorageService.shared.deleteImage(withID: item.imageID)
         modelContext.delete(item)
         dismiss()
+    }
+}
+
+// MARK: - Camera View for Edit
+struct CameraViewForEdit: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    @Binding var showCropper: Bool
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.sourceType = .camera
+        picker.delegate = context.coordinator
+        picker.allowsEditing = false
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraViewForEdit
+        
+        init(_ parent: CameraViewForEdit) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
+            if let original = info[.originalImage] as? UIImage {
+                parent.image = original
+                parent.showCropper = true
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
+    }
+}
+
+// MARK: - Image Cropper View for Edit
+struct ImageCropperViewForEdit: View {
+    let image: UIImage
+    let onSave: (UIImage) -> Void
+    let onCancel: () -> Void
+    
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+    
+    var body: some View {
+        NavigationStack {
+            GeometryReader { geometry in
+                let cropSize = min(geometry.size.width, geometry.size.height) - 40
+                
+                ZStack {
+                    Color.black.ignoresSafeArea()
+                    
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .scaleEffect(scale)
+                        .offset(offset)
+                        .gesture(
+                            MagnificationGesture()
+                                .onChanged { value in
+                                    let delta = value / lastScale
+                                    lastScale = value
+                                    scale = min(max(scale * delta, 1.0), 5.0)
+                                }
+                                .onEnded { _ in
+                                    lastScale = 1.0
+                                }
+                        )
+                        .simultaneousGesture(
+                            DragGesture()
+                                .onChanged { value in
+                                    offset = CGSize(
+                                        width: lastOffset.width + value.translation.width,
+                                        height: lastOffset.height + value.translation.height
+                                    )
+                                }
+                                .onEnded { _ in
+                                    lastOffset = offset
+                                }
+                        )
+                    
+                    CropOverlayForEdit(cropSize: cropSize)
+                }
+            }
+            .navigationTitle("Crop Photo")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.black, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        onCancel()
+                    }
+                    .foregroundColor(.white)
+                }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        let cropped = cropImage()
+                        onSave(cropped)
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundColor(.white)
+                }
+                
+                ToolbarItem(placement: .bottomBar) {
+                    Button("Reset") {
+                        withAnimation {
+                            scale = 1.0
+                            offset = .zero
+                            lastOffset = .zero
+                        }
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+        }
+    }
+    
+    private func cropImage() -> UIImage {
+        let size = min(image.size.width, image.size.height)
+        let x = (image.size.width - size) / 2
+        let y = (image.size.height - size) / 2
+        
+        let cropRect = CGRect(x: x, y: y, width: size, height: size)
+        
+        guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
+            return image
+        }
+        
+        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+    }
+}
+
+// MARK: - Crop Overlay for Edit
+struct CropOverlayForEdit: View {
+    let cropSize: CGFloat
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let centerX = geometry.size.width / 2
+            let centerY = geometry.size.height / 2
+            
+            ZStack {
+                Rectangle()
+                    .fill(Color.black.opacity(0.5))
+                    .mask(
+                        ZStack {
+                            Rectangle()
+                            RoundedRectangle(cornerRadius: 8)
+                                .frame(width: cropSize, height: cropSize)
+                                .position(x: centerX, y: centerY)
+                                .blendMode(.destinationOut)
+                        }
+                        .compositingGroup()
+                    )
+                
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(Color.white, lineWidth: 2)
+                    .frame(width: cropSize, height: cropSize)
+                    .position(x: centerX, y: centerY)
+                
+                Path { path in
+                    let third = cropSize / 3
+                    let left = centerX - cropSize / 2
+                    let top = centerY - cropSize / 2
+                    
+                    path.move(to: CGPoint(x: left + third, y: top))
+                    path.addLine(to: CGPoint(x: left + third, y: top + cropSize))
+                    path.move(to: CGPoint(x: left + third * 2, y: top))
+                    path.addLine(to: CGPoint(x: left + third * 2, y: top + cropSize))
+                    
+                    path.move(to: CGPoint(x: left, y: top + third))
+                    path.addLine(to: CGPoint(x: left + cropSize, y: top + third))
+                    path.move(to: CGPoint(x: left, y: top + third * 2))
+                    path.addLine(to: CGPoint(x: left + cropSize, y: top + third * 2))
+                }
+                .stroke(Color.white.opacity(0.5), lineWidth: 0.5)
+            }
+            .allowsHitTesting(false)
+        }
     }
 }
 
