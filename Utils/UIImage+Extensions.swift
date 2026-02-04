@@ -14,7 +14,6 @@ extension UIImage {
         
         return normalizedImage ?? self
     }
-    }
     
     /// Returns a new image resized to fit within the max dimension, maintaining aspect ratio.
     func resized(to maxDimension: CGFloat) -> UIImage {
