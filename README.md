@@ -1,4 +1,4 @@
-# Threaddit
+# ThreadList
 
 A personal wardrobe inventory app for iOS that lets you digitize and organize your closet.
 
@@ -14,34 +14,29 @@ A personal wardrobe inventory app for iOS that lets you digitize and organize yo
 
 1. Open **Xcode** and create a new project:
    - Select **App** template
-   - Product Name: `Threaddit`
+   - Product Name: `ThreadList`
    - Interface: **SwiftUI**
    - Language: **Swift**
    - Storage: **SwiftData**
    
 2. Delete the generated `ContentView.swift` and `Item.swift` (if created)
 
-3. Copy all files from this `Threaddit/` folder into your Xcode project:
-   - Drag the `Models/`, `Views/`, `Services/` folders and `ThreadditApp.swift` into the project navigator
+3. Copy all files from this folder into your Xcode project:
+   - Drag the `Models/`, `Views/`, `Services/` folders and `ThreadListApp.swift` into the project navigator
    - Ensure "Copy items if needed" is checked
    - Select "Create groups"
 
-4. Replace the generated `Info.plist` with the one from this folder (for camera/photo permissions)
+4. Add camera/photo permissions in Xcode's Info tab (see Privacy section)
 
 5. Replace `Assets.xcassets` contents with those from this folder
 
 6. Build and run on iOS 17+ simulator or device
 
-### Option 2: Use Swift Package (Advanced)
-
-If you prefer, you can create a Swift Package and use these files as source.
-
 ## Project Structure
 
 ```
-Threaddit/
-├── ThreadditApp.swift          # App entry point with SwiftData container
-├── Info.plist                  # Privacy permissions
+ThreadList/
+├── ThreadListApp.swift         # App entry point with SwiftData container
 ├── Assets.xcassets/            # App icons and colors
 ├── Models/
 │   ├── ClothingItem.swift      # Main item model
@@ -73,4 +68,8 @@ Threaddit/
 
 ## Privacy
 
-Threaddit stores all data locally on your device using SwiftData. Images are saved to the app's Documents directory. No data is sent to external servers.
+ThreadList stores all data locally on your device using SwiftData. Images are saved to the app's Documents directory. No data is sent to external servers.
+
+Required permissions:
+- **Camera**: To take photos of clothing items
+- **Photo Library**: To select existing images

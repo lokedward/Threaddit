@@ -12,7 +12,7 @@ struct ContentView: View {
     var body: some View {
         NavigationStack {
             HomeView(searchText: $searchText, showingAddItem: $showingAddItem)
-                .navigationTitle("Threaddit")
+                .navigationTitle("ThreadList")
                 .navigationBarTitleDisplayMode(.large)
                 .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {

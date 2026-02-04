@@ -1,11 +1,11 @@
-// ThreadditApp.swift
-// Main entry point for the Threaddit iOS app
+// ThreadListApp.swift
+// Main entry point for the ThreadList iOS app
 
 import SwiftUI
 import SwiftData
 
 @main
-struct ThreadditApp: App {
+struct ThreadListApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
             ClothingItem.self,
