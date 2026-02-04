@@ -141,8 +141,12 @@ struct ItemDetailView: View {
             Button("Cancel", role: .cancel) {}
         }
         .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhotoItem, matching: .images)
-        .fullScreenCover(isPresented: $showingCamera) {
-            CameraViewForEdit(image: $imageToCrop, showCropper: $showingImageCropper)
+        .fullScreenCover(isPresented: $showingCamera, onDismiss: {
+            if imageToCrop != nil {
+                showingImageCropper = true
+            }
+        }) {
+            CameraViewForEdit(image: $imageToCrop)
         }
         .fullScreenCover(isPresented: $showingImageCropper) {
             if let image = imageToCrop {
@@ -398,7 +402,6 @@ struct ItemDetailView: View {
 // MARK: - Camera View for Edit
 struct CameraViewForEdit: UIViewControllerRepresentable {
     @Binding var image: UIImage?
-    @Binding var showCropper: Bool
     @Environment(\.dismiss) private var dismiss
     
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -425,10 +428,6 @@ struct CameraViewForEdit: UIViewControllerRepresentable {
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {
             if let original = info[.originalImage] as? UIImage {
                 parent.image = original
-                // Delay before showing cropper to prevent iOS 18 black screen conflict
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    parent.showCropper = true
-                }
             }
             parent.dismiss()
         }
