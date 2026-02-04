@@ -28,6 +28,7 @@ struct AddItemView: View {
     @State private var tagsText = ""
     
     @State private var isSaving = false
+    @State private var isProcessingImage = false
     
     var canSave: Bool {
         selectedImage != nil && !name.isEmpty && selectedCategory != nil
@@ -149,22 +150,44 @@ struct AddItemView: View {
                 }
             }
             .onChange(of: selectedPhotoItem) { _, newValue in
+                guard let item = newValue else { return }
+                
+                isProcessingImage = true
+                
                 Task {
-                    guard let item = newValue,
-                          let data = try? await item.loadTransferable(type: Data.self),
-                          let uiImage = UIImage(data: data) else { return }
+                    // Load raw data first
+                    guard let data = try? await item.loadTransferable(type: Data.self) else {
+                        await MainActor.run { isProcessingImage = false }
+                        return
+                    }
                     
-                    // Resize large images to prevent memory crash/UI freeze
-                    let resizedImage = uiImage.resized(to: 1500)
+                    // Downsample efficiently without loading full image into RAM
+                    // Using 1500px as max dimension for high quality but low memory footprint
+                    guard let downsampledImage = UIImage.downsample(imageData: data, to: CGSize(width: 1500, height: 1500)) else {
+                        await MainActor.run { isProcessingImage = false }
+                        return
+                    }
                     
                     // Critical Fix: Wait for PhotosPicker to fully dismiss before presenting cropper
                     // Prevents "Unbalanced calls to begin/end appearance transitions" freeze
                     try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay
                     
                     await MainActor.run {
-                        imageToCrop = resizedImage
+                        imageToCrop = downsampledImage
                         showingImageCropper = true
                         selectedPhotoItem = nil // Reset picker selection
+                        isProcessingImage = false
+                    }
+                }
+            }
+            .overlay {
+                if isProcessingImage {
+                    ZStack {
+                        Color.black.opacity(0.4).ignoresSafeArea()
+                        ProgressView("Processing Image...")
+                            .padding()
+                            .background(Material.regular)
+                            .cornerRadius(10)
                     }
                 }
             }
