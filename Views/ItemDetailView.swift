@@ -561,13 +561,15 @@ struct ImageCropperViewForEdit: View {
     }
     
     private func cropImage(cropSize: CGFloat) -> UIImage {
-        let initialAspect = image.size.width / image.size.height
-        let vW = viewSize.width > 0 ? viewSize.width : image.size.width
-        let vH = viewSize.height > 0 ? viewSize.height : image.size.height
+        let img = image.fixedOrientation()
+        
+        let initialAspect = img.size.width / img.size.height
+        let vW = viewSize.width > 0 ? viewSize.width : img.size.width
+        let vH = viewSize.height > 0 ? viewSize.height : img.size.height
         let viewAspect = vW / vH
         
         let renderedWidth = viewAspect > initialAspect ? vH * initialAspect : vW
-        let screenToImageRatio = image.size.width / renderedWidth
+        let screenToPixelRatio = CGFloat(img.cgImage!.width) / renderedWidth
         let totalScale = scale
         
         let cropWidthInBaseRendered = cropSize / totalScale
@@ -583,18 +585,18 @@ struct ImageCropperViewForEdit: View {
         let cropX = centerX - (cropWidthInBaseRendered / 2)
         let cropY = centerY - (cropHeightInBaseRendered / 2)
         
-        let pixelX = cropX * screenToImageRatio
-        let pixelY = cropY * screenToImageRatio
-        let pixelWidth = cropWidthInBaseRendered * screenToImageRatio
-        let pixelHeight = cropHeightInBaseRendered * screenToImageRatio
+        let pixelX = cropX * screenToPixelRatio
+        let pixelY = cropY * screenToPixelRatio
+        let pixelWidth = cropWidthInBaseRendered * screenToPixelRatio
+        let pixelHeight = cropHeightInBaseRendered * screenToPixelRatio
         
         let cropRect = CGRect(x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight)
         
-        guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
-            return image
+        guard let cgImage = img.cgImage?.cropping(to: cropRect) else {
+            return img
         }
         
-        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        return UIImage(cgImage: cgImage, scale: img.scale, orientation: .up)
     }
 }
 

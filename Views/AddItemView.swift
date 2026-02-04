@@ -388,31 +388,27 @@ struct ImageCropperView: View {
     }
     
     private func cropImage(cropSize: CGFloat) -> UIImage {
-        // Calculate the rectangle on the original image that corresponds to the crop box
+        // Use normalized image to ensure coordinate systems match (pixels vs points, orientation)
+        let img = image.fixedOrientation()
         
-        let initialAspect = image.size.width / image.size.height
-        let vW = viewSize.width > 0 ? viewSize.width : image.size.width
-        let vH = viewSize.height > 0 ? viewSize.height : image.size.height
+        // Calculate the rectangle on the original image that corresponds to the crop box
+        let initialAspect = img.size.width / img.size.height
+        let vW = viewSize.width > 0 ? viewSize.width : img.size.width
+        let vH = viewSize.height > 0 ? viewSize.height : img.size.height
         let viewAspect = vW / vH
         
         // Size of the image as rendered on screen (at scale 1.0)
         let renderedWidth = viewAspect > initialAspect ? vH * initialAspect : vW
         
-        // The scale factor between screen pixels and actual image pixels
-        // actual pixels = screen pixels * ratio
-        let screenToImageRatio = image.size.width / renderedWidth
+        // Ratio map: Screen Points -> Image Pixels
+        // We use cgImage.width (Physical Pixels) / renderedWidth (Screen Points)
+        // This accounts for both image scale (@2x, @3x) and device scale
+        let screenToPixelRatio = CGFloat(img.cgImage!.width) / renderedWidth
         
         // The effective scale including user zoom
         let totalScale = scale
         
-        // Center of the crop box is the center of the screen (0, 0 in offset space)
-        // Center of the image is at 'offset' relative to screen center
-        // Vector from Image Center to Crop Center is '-offset'
-        
         // Size of the crop box in unscaled screen coordinates
-        // But the image is scaled by 'scale'.
-        // So in the coordinate space of the displayed image (scale 1.0), the crop box is size / scale
-        
         let cropWidthInBaseRendered = cropSize / totalScale
         let cropHeightInBaseRendered = cropSize / totalScale
         
@@ -421,7 +417,6 @@ struct ImageCropperView: View {
         
         // Center of crop relative to image center (in base rendered coords)
         let centerX = (renderedWidth / 2) - offsetXInBaseRendered
-        // Height calculation depends on aspect ratio - let's use the ratio
         let renderedHeight = renderedWidth / initialAspect
         let centerY = (renderedHeight / 2) - offsetYInBaseRendered
         
@@ -429,18 +424,18 @@ struct ImageCropperView: View {
         let cropY = centerY - (cropHeightInBaseRendered / 2)
         
         // Convert to actual image pixels
-        let pixelX = cropX * screenToImageRatio
-        let pixelY = cropY * screenToImageRatio
-        let pixelWidth = cropWidthInBaseRendered * screenToImageRatio
-        let pixelHeight = cropHeightInBaseRendered * screenToImageRatio
+        let pixelX = cropX * screenToPixelRatio
+        let pixelY = cropY * screenToPixelRatio
+        let pixelWidth = cropWidthInBaseRendered * screenToPixelRatio
+        let pixelHeight = cropHeightInBaseRendered * screenToPixelRatio
         
         let cropRect = CGRect(x: pixelX, y: pixelY, width: pixelWidth, height: pixelHeight)
         
-        guard let cgImage = image.cgImage?.cropping(to: cropRect) else {
-            return image
+        guard let cgImage = img.cgImage?.cropping(to: cropRect) else {
+            return img
         }
         
-        return UIImage(cgImage: cgImage, scale: image.scale, orientation: image.imageOrientation)
+        return UIImage(cgImage: cgImage, scale: img.scale, orientation: .up)
     }
 }
 
