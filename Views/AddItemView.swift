@@ -157,9 +157,14 @@ struct AddItemView: View {
                     // Resize large images to prevent memory crash/UI freeze
                     let resizedImage = uiImage.resized(to: 1500)
                     
+                    // Critical Fix: Wait for PhotosPicker to fully dismiss before presenting cropper
+                    // Prevents "Unbalanced calls to begin/end appearance transitions" freeze
+                    try? await Task.sleep(nanoseconds: 500_000_000) // 0.5s delay
+                    
                     await MainActor.run {
                         imageToCrop = resizedImage
                         showingImageCropper = true
+                        selectedPhotoItem = nil // Reset picker selection
                     }
                 }
             }
