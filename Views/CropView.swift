@@ -67,6 +67,13 @@ struct CropView: View {
                         imageFrame: imageFrame,
                         viewSize: geometry.size
                     )
+                    
+                    // DEBUG: Visualize image frame boundaries
+                    Rectangle()
+                        .stroke(Color.red.opacity(0.5), lineWidth: 1)
+                        .frame(width: imageFrame.width, height: imageFrame.height)
+                        .position(x: imageFrame.midX, y: imageFrame.midY)
+                        .allowsHitTesting(false)
                 }
                 .onChange(of: geometry.size) { _, newSize in
                     if cropRect == .zero && newSize.width > 0 && newSize.height > 0 {
@@ -102,11 +109,14 @@ struct CropView: View {
         
         var displaySize: CGSize
         if imageAspect > viewAspect {
+            // Image is wider - fits to width
             displaySize = CGSize(width: viewSize.width, height: viewSize.width / imageAspect)
         } else {
+            // Image is taller - fits to height
             displaySize = CGSize(width: viewSize.height * imageAspect, height: viewSize.height)
         }
         
+        // Center within the available view size
         let x = (viewSize.width - displaySize.width) / 2
         let y = (viewSize.height - displaySize.height) / 2
         
@@ -208,9 +218,9 @@ struct CropOverlay: View {
                         )
                 )
             
-            // Crop rectangle border (white, clean)
+            // Invisible draggable area (entire crop rectangle)
             Rectangle()
-                .stroke(Color.white, lineWidth: 2)
+                .fill(Color.clear)
                 .frame(width: cropRect.width, height: cropRect.height)
                 .position(x: cropRect.midX, y: cropRect.midY)
                 .gesture(
@@ -233,6 +243,13 @@ struct CropOverlay: View {
                             isDraggingCrop = false
                         }
                 )
+            
+            // Crop rectangle border (white, clean) - visual only
+            Rectangle()
+                .stroke(Color.white, lineWidth: 2)
+                .frame(width: cropRect.width, height: cropRect.height)
+                .position(x: cropRect.midX, y: cropRect.midY)
+                .allowsHitTesting(false)
         }
     }
     
