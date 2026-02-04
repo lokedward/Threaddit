@@ -1,0 +1,319 @@
+// ItemDetailView.swift
+// Full item detail view with edit and delete functionality
+
+import SwiftUI
+import SwiftData
+
+struct ItemDetailView: View {
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
+    
+    @Bindable var item: ClothingItem
+    
+    @Query(sort: \Category.displayOrder) private var categories: [Category]
+    
+    @State private var isEditing = false
+    @State private var showingDeleteConfirmation = false
+    @State private var itemImage: UIImage?
+    
+    // Edit state
+    @State private var editName = ""
+    @State private var editBrand = ""
+    @State private var editSize = ""
+    @State private var editCategory: Category?
+    @State private var editTagsText = ""
+    
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 20) {
+                // Image
+                Group {
+                    if let image = itemImage {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(1, contentMode: .fit)
+                    } else {
+                        Rectangle()
+                            .fill(Color.secondary.opacity(0.2))
+                            .aspectRatio(1, contentMode: .fit)
+                            .overlay {
+                                Image(systemName: "photo")
+                                    .font(.largeTitle)
+                                    .foregroundColor(.secondary)
+                            }
+                    }
+                }
+                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .padding(.horizontal)
+                
+                // Details
+                VStack(spacing: 16) {
+                    if isEditing {
+                        editingView
+                    } else {
+                        detailView
+                    }
+                }
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
+        }
+        .navigationTitle(isEditing ? "Edit Item" : item.name)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                if isEditing {
+                    Button("Done") {
+                        saveEdits()
+                    }
+                    .fontWeight(.semibold)
+                } else {
+                    Button("Edit") {
+                        startEditing()
+                    }
+                }
+            }
+        }
+        .alert("Delete Item?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                deleteItem()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will permanently remove \"\(item.name)\" from your closet.")
+        }
+        .onAppear {
+            loadImage()
+        }
+    }
+    
+    private var detailView: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            // Name and Category
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.name)
+                    .font(.title.weight(.bold))
+                
+                if let category = item.category {
+                    Text(category.name)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.secondary.opacity(0.15))
+                        .clipShape(Capsule())
+                }
+            }
+            
+            Divider()
+            
+            // Details Grid
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 12) {
+                if let brand = item.brand, !brand.isEmpty {
+                    DetailRow(label: "Brand", value: brand)
+                }
+                
+                if let size = item.size, !size.isEmpty {
+                    DetailRow(label: "Size", value: size)
+                }
+                
+                DetailRow(label: "Added", value: item.dateAdded.formatted(date: .abbreviated, time: .omitted))
+            }
+            
+            // Tags
+            if !item.tags.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Tags")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundColor(.secondary)
+                    
+                    FlowLayout(spacing: 8) {
+                        ForEach(item.tags, id: \.self) { tag in
+                            Text("#\(tag)")
+                                .font(.caption)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 6)
+                                .background(Color.accentColor.opacity(0.15))
+                                .foregroundColor(.accentColor)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+            
+            Spacer(minLength: 20)
+            
+            // Delete Button
+            Button(role: .destructive) {
+                showingDeleteConfirmation = true
+            } label: {
+                HStack {
+                    Image(systemName: "trash")
+                    Text("Delete Item")
+                }
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.red.opacity(0.1))
+                .foregroundColor(.red)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+            }
+        }
+    }
+    
+    private var editingView: some View {
+        VStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Name")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.secondary)
+                TextField("Item name", text: $editName)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Category")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.secondary)
+                Picker("Category", selection: $editCategory) {
+                    Text("None").tag(nil as Category?)
+                    ForEach(categories) { category in
+                        Text(category.name).tag(category as Category?)
+                    }
+                }
+                .pickerStyle(.menu)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Brand")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.secondary)
+                TextField("Brand (optional)", text: $editBrand)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Size")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.secondary)
+                TextField("Size (optional)", text: $editSize)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Tags")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundColor(.secondary)
+                TextField("Comma separated tags", text: $editTagsText)
+                    .textFieldStyle(.roundedBorder)
+            }
+            
+            Button("Cancel", role: .cancel) {
+                isEditing = false
+            }
+            .padding(.top)
+        }
+    }
+    
+    private func loadImage() {
+        itemImage = ImageStorageService.shared.loadImage(withID: item.imageID)
+    }
+    
+    private func startEditing() {
+        editName = item.name
+        editBrand = item.brand ?? ""
+        editSize = item.size ?? ""
+        editCategory = item.category
+        editTagsText = item.tags.joined(separator: ", ")
+        isEditing = true
+    }
+    
+    private func saveEdits() {
+        item.name = editName
+        item.brand = editBrand.isEmpty ? nil : editBrand
+        item.size = editSize.isEmpty ? nil : editSize
+        item.category = editCategory
+        item.tags = editTagsText
+            .split(separator: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        
+        isEditing = false
+    }
+    
+    private func deleteItem() {
+        ImageStorageService.shared.deleteImage(withID: item.imageID)
+        modelContext.delete(item)
+        dismiss()
+    }
+}
+
+struct DetailRow: View {
+    let label: String
+    let value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Text(value)
+                .font(.body)
+        }
+    }
+}
+
+// Simple flow layout for tags
+struct FlowLayout: Layout {
+    var spacing: CGFloat = 8
+    
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let result = FlowResult(in: proposal.width ?? 0, subviews: subviews, spacing: spacing)
+        return result.size
+    }
+    
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let result = FlowResult(in: bounds.width, subviews: subviews, spacing: spacing)
+        for (index, subview) in subviews.enumerated() {
+            subview.place(at: CGPoint(x: bounds.minX + result.positions[index].x,
+                                       y: bounds.minY + result.positions[index].y),
+                         proposal: .unspecified)
+        }
+    }
+    
+    struct FlowResult {
+        var size: CGSize = .zero
+        var positions: [CGPoint] = []
+        
+        init(in maxWidth: CGFloat, subviews: Subviews, spacing: CGFloat) {
+            var x: CGFloat = 0
+            var y: CGFloat = 0
+            var rowHeight: CGFloat = 0
+            
+            for subview in subviews {
+                let size = subview.sizeThatFits(.unspecified)
+                
+                if x + size.width > maxWidth && x > 0 {
+                    x = 0
+                    y += rowHeight + spacing
+                    rowHeight = 0
+                }
+                
+                positions.append(CGPoint(x: x, y: y))
+                rowHeight = max(rowHeight, size.height)
+                x += size.width + spacing
+                
+                self.size.width = max(self.size.width, x)
+            }
+            
+            self.size.height = y + rowHeight
+        }
+    }
+}
+
+#Preview {
+    let item = ClothingItem(name: "Vintage Jacket", brand: "Levi's", size: "M", tags: ["denim", "casual"])
+    return NavigationStack {
+        ItemDetailView(item: item)
+    }
+    .modelContainer(for: [ClothingItem.self, Category.self], inMemory: true)
+}
