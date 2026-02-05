@@ -67,7 +67,8 @@ struct AddItemView: View {
                 categories: categories,
                 onAddPhoto: { showingImageSourcePicker = true },
                 onOpenBulkGallery: { showingBulkPhotoPicker = true },
-                onSave: saveItem
+                onSave: saveItem,
+                onCropComplete: { img in selectedImage = img }
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -162,6 +163,7 @@ struct MainFormView: View {
     let onAddPhoto: () -> Void
     let onOpenBulkGallery: () -> Void
     let onSave: () -> Void
+    let onCropComplete: (UIImage) -> Void
     
     var body: some View {
         ZStack {
@@ -330,7 +332,7 @@ struct AddItemPickerModifiers: ViewModifier {
     @Binding var showingPhotoPicker: Bool
     @Binding var showingBulkPhotoPicker: Bool
     @Binding var selectedPhotoItem: PhotosPickerItem?
-    @Binding var selectedPhotoItems: [PhotosPickerItem] = []
+    @Binding var selectedPhotoItems: [PhotosPickerItem]
     @Binding var croppingItem: CroppableImage?
     @Binding var imageToCrop: UIImage?
     @Binding var isProcessingImage: Bool
@@ -352,8 +354,11 @@ struct AddItemPickerModifiers: ViewModifier {
             }
             .fullScreenCover(item: $croppingItem) { item in
                 CropView(image: item.image) { croppedImage in
-                    // Logic back to parent could be here, but simpler via @State
-                } onCancel: { }
+                    onSingleProcessed(croppedImage)
+                    croppingItem = nil
+                } onCancel: {
+                    croppingItem = nil
+                }
             }
             .onChange(of: selectedPhotoItem) { _, newValue in
                 if let item = newValue { processSingle(item) }
