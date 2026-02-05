@@ -63,41 +63,15 @@ struct AddItemView: View {
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(additionMode == .single ? "New Item" : "Bulk Upload").poshHeadline(size: 18)
-                }
-                
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") { dismiss() }
-                        .poshBody(size: 16)
-                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                }
-            }
+            .toolbar { navBarContent }
             .confirmationDialog("Choose Photo Source", isPresented: $showingImageSourcePicker) {
-                Button("Take Photo") {
-                    showingCamera = true
-                }
-                
-                Button("Choose from Library") {
-                    showingPhotoPicker = true
-                }
-                
-                Button("Cancel", role: .cancel) {}
+                sourcePickerButtons
             }
             .photosPicker(isPresented: $showingPhotoPicker, selection: $selectedPhotoItem, matching: .images)
             .photosPicker(isPresented: $showingBulkPhotoPicker, selection: $selectedPhotoItems, maxSelectionLimit: 50, matching: .images)
-            .fullScreenCover(isPresented: $showingCamera, onDismiss: {
-                // Ensure camera is fully dismissed on iOS 18 before selecting the cropping item
-                if let image = imageToCrop {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.modalTransitionDelay) {
-                        croppingItem = CroppableImage(image: image)
-                    }
-                }
-            }) {
+            .fullScreenCover(isPresented: $showingCamera, onDismiss: handleCameraDismiss) {
                 ImagePickerView(image: $imageToCrop, sourceType: .camera)
             }
-            
             .fullScreenCover(item: $croppingItem) { item in
                 CropView(image: item.image) { croppedImage in
                     selectedImage = croppedImage
@@ -107,30 +81,13 @@ struct AddItemView: View {
                 }
             }
             .onChange(of: selectedPhotoItem) { _, newValue in
-                guard let item = newValue else { return }
-                processSinglePhoto(item)
+                if let item = newValue { processSinglePhoto(item) }
             }
             .onChange(of: selectedPhotoItems) { _, newValue in
-                guard !newValue.isEmpty else { return }
-                processBulkPhotos(newValue)
+                if !newValue.isEmpty { processBulkPhotos(newValue) }
             }
-            .overlay {
-                if isProcessingImage {
-                    ZStack {
-                        Color.black.opacity(0.4).ignoresSafeArea()
-                        ProgressView("Processing Image...")
-                            .padding()
-                            .background(Material.regular)
-                            .cornerRadius(10)
-                    }
-                }
-            }
-            .onAppear {
-                // Default to first category if available
-                if selectedCategory == nil, let first = categories.first {
-                    selectedCategory = first
-                }
-            }
+            .overlay { processingOverlay }
+            .onAppear { setupInitialCategory() }
         }
     }
     
@@ -207,9 +164,7 @@ struct AddItemView: View {
     
     private var imageSection: some View {
         VStack(spacing: 16) {
-            let currentImage = additionMode == .single ? selectedImage : bulkImageQueue.first
-            
-            if let image = currentImage {
+            if let image = (additionMode == .single ? selectedImage : bulkImageQueue.first) {
                 Image(uiImage: image)
                     .resizable()
                     .aspectRatio(contentMode: .fill)
@@ -229,78 +184,45 @@ struct AddItemView: View {
                     }
                 }
             } else {
-                Button {
-                    showingImageSourcePicker = true
-                } label: {
-                    VStack(spacing: 20) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 30, weight: .light))
-                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                            .padding(20)
-                            .background(Circle().stroke(PoshTheme.Colors.secondaryAccent.opacity(0.3), lineWidth: 1))
-                        
-                        Text("ADD PHOTOGRAPH")
-                            .font(.system(size: 12, weight: .bold))
-                            .tracking(2)
-                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 300)
-                    .background(PoshTheme.Colors.cardBackground)
-                    .cornerRadius(16)
-                    .poshCard()
-                }
-                .buttonStyle(.plain)
+                imagePlaceholder
             }
         }
     }
     
+    private var imagePlaceholder: some View {
+        Button {
+            showingImageSourcePicker = true
+        } label: {
+            VStack(spacing: 20) {
+                Image(systemName: "plus")
+                    .font(.system(size: 30, weight: .light))
+                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    .padding(20)
+                    .background(Circle().stroke(PoshTheme.Colors.secondaryAccent.opacity(0.3), lineWidth: 1))
+                
+                Text("ADD PHOTOGRAPH")
+                    .font(.system(size: 12, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 300)
+            .background(PoshTheme.Colors.cardBackground)
+            .cornerRadius(16)
+            .poshCard()
+        }
+        .buttonStyle(.plain)
+    }
+    
     private var detailsSection: some View {
         VStack(alignment: .leading, spacing: 20) {
-            HStack {
-                Text("Item Details")
-                    .poshHeadline(size: 20)
-                Spacer()
-                if additionMode == .multiple {
-                    Button {
-                        withAnimation { isMetadataExpanded.toggle() }
-                    } label: {
-                        Image(systemName: isMetadataExpanded ? "chevron.up" : "chevron.down")
-                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                    }
-                }
-            }
+            detailsHeader
             
             VStack(spacing: 16) {
                 PoshTextField(label: "NAME", text: $name, placeholder: "e.g. Classic Trench Coat")
                 
                 if isMetadataExpanded {
-                    // Category Picker
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("CATEGORY")
-                            .font(.system(size: 10, weight: .bold))
-                            .tracking(1)
-                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                        
-                        Menu {
-                            ForEach(categories) { category in
-                                Button(category.name) {
-                                    selectedCategory = category
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Text(selectedCategory?.name ?? "Select Category")
-                                    .poshBody(size: 16)
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 12, weight: .semibold))
-                                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                            }
-                            .padding(.vertical, 12)
-                            .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
-                        }
-                    }
+                    categoryPickerRow
                     
                     PoshTextField(label: "BRAND", text: $brand, placeholder: "Optional")
                     PoshTextField(label: "SIZE", text: $size, placeholder: "Optional")
@@ -312,16 +234,51 @@ struct AddItemView: View {
         .poshCard()
     }
     
+    private var detailsHeader: some View {
+        HStack {
+            Text("Item Details").poshHeadline(size: 20)
+            Spacer()
+            if additionMode == .multiple {
+                Button { withAnimation { isMetadataExpanded.toggle() } } label: {
+                    Image(systemName: isMetadataExpanded ? "chevron.up" : "chevron.down")
+                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                }
+            }
+        }
+    }
+    
+    private var categoryPickerRow: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("CATEGORY")
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1)
+                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+            
+            Menu {
+                ForEach(categories) { category in
+                    Button(category.name) { selectedCategory = category }
+                }
+            } label: {
+                HStack {
+                    Text(selectedCategory?.name ?? "Select Category").poshBody(size: 16)
+                    Spacer()
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .semibold))
+                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                }
+                .padding(.vertical, 12)
+                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+            }
+        }
+    }
+    
     private var actionButton: some View {
-        Button {
-            saveItem()
-        } label: {
+        Button(action: saveItem) {
             HStack {
                 if isSaving {
                     ProgressView().tint(.white)
                 } else {
-                    Text(additionMode == .single ? "SAVE TO CLOSET" : (bulkImageQueue.count > 1 ? "SAVE & NEXT" : "SAVE & FINISH"))
-                        .tracking(2)
+                    actionButtonText.tracking(2)
                 }
             }
             .frame(maxWidth: .infinity)
@@ -330,6 +287,61 @@ struct AddItemView: View {
         .disabled(!canSave || isSaving)
         .opacity(canSave ? 1.0 : 0.6)
         .padding(.top, 8)
+    }
+    
+    private var actionButtonText: Text {
+        if additionMode == .single {
+            return Text("SAVE TO CLOSET")
+        } else {
+            return Text(bulkImageQueue.count > 1 ? "SAVE & NEXT" : "SAVE & FINISH")
+        }
+    }
+    
+    @ToolbarContentBuilder
+    private var navBarContent: some ToolbarContent {
+        ToolbarItem(placement: .principal) {
+            Text(additionMode == .single ? "New Item" : "Bulk Upload").poshHeadline(size: 18)
+        }
+        
+        ToolbarItem(placement: .navigationBarLeading) {
+            Button("Cancel") { dismiss() }
+                .poshBody(size: 16)
+                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+        }
+    }
+    
+    @ViewBuilder
+    private var sourcePickerButtons: some View {
+        Button("Take Photo") { showingCamera = true }
+        Button("Choose from Library") { showingPhotoPicker = true }
+        Button("Cancel", role: .cancel) {}
+    }
+    
+    @ViewBuilder
+    private var processingOverlay: some View {
+        if isProcessingImage {
+            ZStack {
+                Color.black.opacity(0.4).ignoresSafeArea()
+                ProgressView("Processing Image...")
+                    .padding()
+                    .background(Material.regular)
+                    .cornerRadius(10)
+            }
+        }
+    }
+    
+    private func handleCameraDismiss() {
+        if let image = imageToCrop {
+            DispatchQueue.main.asyncAfter(deadline: .now() + AppConstants.Animation.modalTransitionDelay) {
+                croppingItem = CroppableImage(image: image)
+            }
+        }
+    }
+    
+    private func setupInitialCategory() {
+        if selectedCategory == nil, let first = categories.first {
+            selectedCategory = first
+        }
     }
 
     // MARK: - Helper Methods
