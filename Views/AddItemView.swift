@@ -59,64 +59,7 @@ struct AddItemView: View {
                 PoshTheme.Colors.background.ignoresSafeArea()
                 
                 ScrollView {
-                    VStack(spacing: 24) {
-                        // Mode Toggle
-                        Picker("Mode", selection: $additionMode) {
-                            ForEach(AdditionMode.allCases, id: \.self) { mode in
-                                Text(mode.rawValue).tag(mode)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.horizontal, 40)
-                        .onChange(of: additionMode) {
-                            resetFields()
-                        }
-                        
-                        if additionMode == .multiple && bulkImageQueue.isEmpty {
-                            // Empty State for Bulk
-                            VStack(spacing: 30) {
-                                Image(systemName: "square.stack.3d.up")
-                                    .font(.system(size: 50, weight: .ultraLight))
-                                    .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.4))
-                                
-                                Text("SELECT MULTIPLE GARMENTS")
-                                    .font(.system(size: 14, weight: .bold))
-                                    .tracking(2)
-                                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
-                                
-                                Button {
-                                    showingBulkPhotoPicker = true
-                                } label: {
-                                    Text("OPEN GALLERY")
-                                        .tracking(2)
-                                }
-                                .poshButton()
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 100)
-                        } else {
-                            // Active Form (Single or Bulk Processing)
-                            VStack(spacing: 24) {
-                                // Image Section
-                                imageSection
-                                
-                                if additionMode == .multiple {
-                                    Text("ITEM \(totalBulkItems - bulkImageQueue.count + 1) OF \(totalBulkItems)")
-                                        .font(.system(size: 10, weight: .bold))
-                                        .tracking(2)
-                                        .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.6))
-                                }
-                                
-                                // Details Section
-                                detailsSection
-                                
-                                // Action Button
-                                actionButton
-                            }
-                        }
-                    }
-                    .padding(20)
-                    .padding(.bottom, 40)
+                    formContent
                 }
             }
             .navigationBarTitleDisplayMode(.inline)
@@ -163,7 +106,6 @@ struct AddItemView: View {
                     croppingItem = nil
                 }
             }
-
             .onChange(of: selectedPhotoItem) { _, newValue in
                 guard let item = newValue else { return }
                 processSinglePhoto(item)
@@ -189,6 +131,75 @@ struct AddItemView: View {
                     selectedCategory = first
                 }
             }
+        }
+    }
+    
+    // MARK: - Component Blocks
+    
+    private var formContent: some View {
+        VStack(spacing: 24) {
+            // Mode Toggle
+            Picker("Mode", selection: $additionMode) {
+                ForEach(AdditionMode.allCases, id: \.self) { mode in
+                    Text(mode.rawValue).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding(.horizontal, 40)
+            .onChange(of: additionMode) {
+                resetFields()
+            }
+            
+            if additionMode == .multiple && bulkImageQueue.isEmpty {
+                bulkEmptyState
+            } else {
+                activeFormContent
+            }
+        }
+        .padding(20)
+        .padding(.bottom, 40)
+    }
+    
+    private var bulkEmptyState: some View {
+        VStack(spacing: 30) {
+            Image(systemName: "square.stack.3d.up")
+                .font(.system(size: 50, weight: .ultraLight))
+                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.4))
+            
+            Text("SELECT MULTIPLE GARMENTS")
+                .font(.system(size: 14, weight: .bold))
+                .tracking(2)
+                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+            
+            Button {
+                showingBulkPhotoPicker = true
+            } label: {
+                Text("OPEN GALLERY")
+                    .tracking(2)
+            }
+            .poshButton()
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 100)
+    }
+    
+    private var activeFormContent: some View {
+        VStack(spacing: 24) {
+            // Image Section
+            imageSection
+            
+            if additionMode == .multiple {
+                Text("ITEM \(totalBulkItems - bulkImageQueue.count + 1) OF \(totalBulkItems)")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.6))
+            }
+            
+            // Details Section
+            detailsSection
+            
+            // Action Button
+            actionButton
         }
     }
     
