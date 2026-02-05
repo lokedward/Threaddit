@@ -228,6 +228,7 @@ struct AddItemView: View {
         )
         
         modelContext.insert(item)
+        try? modelContext.save()
         
         dismiss()
     }

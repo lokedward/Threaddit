@@ -392,11 +392,13 @@ struct ItemDetailView: View {
         
         newImage = nil
         isEditing = false
+        try? modelContext.save()
     }
     
     private func deleteItem() {
         ImageStorageService.shared.deleteImage(withID: item.imageID)
         modelContext.delete(item)
+        try? modelContext.save()
         dismiss()
     }
 }
