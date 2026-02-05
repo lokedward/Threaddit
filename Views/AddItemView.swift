@@ -184,7 +184,7 @@ struct MainFormView: View {
                                 image: additionMode == .single ? selectedImage : bulkImageQueue.first,
                                 showChangeButton: additionMode == .single,
                                 onTrigger: onAddPhoto
-                            )
+                            ).equatable()
                             
                             if additionMode == .multiple {
                                 let currentItemIndex = totalBulkItems - bulkImageQueue.count + 1
@@ -214,10 +214,15 @@ struct MainFormView: View {
     }
 }
 
-struct ImageSectionView: View {
+struct ImageSectionView: View, Equatable {
     let image: UIImage?
     let showChangeButton: Bool
     let onTrigger: () -> Void
+    
+    // Manual Equatable implementation to help SwiftUI skip re-renders
+    static func == (lhs: ImageSectionView, rhs: ImageSectionView) -> Bool {
+        lhs.image === rhs.image && lhs.showChangeButton == rhs.showChangeButton
+    }
     
     var body: some View {
         VStack(spacing: 16) {
@@ -417,11 +422,32 @@ struct PoshTextField: View {
     let label: String
     @Binding var text: String
     var placeholder: String = ""
+    
+    @State private var localText: String = ""
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(label).font(.system(size: 10, weight: .bold)).tracking(1).foregroundColor(PoshTheme.Colors.secondaryAccent)
-            TextField(placeholder, text: $text).poshBody(size: 16).padding(.vertical, 12)
+            
+            TextField(placeholder, text: $localText)
+                .poshBody(size: 16)
+                .padding(.vertical, 12)
                 .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+        }
+        .onAppear {
+            localText = text
+        }
+        .onChange(of: localText) { _, newValue in
+            // Propagate to binding only if different to avoid redundant parent updates
+            if newValue != text {
+                text = newValue
+            }
+        }
+        .onChange(of: text) { _, newValue in
+            // Sync if parent changes text (e.g. on clear)
+            if newValue != localText {
+                localText = newValue
+            }
         }
     }
 }
