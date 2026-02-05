@@ -20,74 +20,144 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationStack {
-            List {
-                // Categories Section
-                Section {
-                    NavigationLink {
-                        CategoryManagementView()
-                    } label: {
-                        Label("Manage Categories", systemImage: "folder")
-                    }
-                }
+            ZStack {
+                PoshTheme.Colors.background.ignoresSafeArea()
                 
-                // Appearance Section
-                Section("Appearance") {
-                    Picker("Theme", selection: $appearanceMode) {
-                        ForEach(AppearanceMode.allCases, id: \.self) { mode in
-                            Text(mode.rawValue).tag(mode)
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Categories Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("ORGANIZATION")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            
+                            NavigationLink {
+                                CategoryManagementView()
+                            } label: {
+                                HStack {
+                                    Label("MANAGE CATEGORIES", systemImage: "folder")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .tracking(1)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                }
+                                .padding()
+                                .background(PoshTheme.Colors.cardBackground)
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
                         }
+                        .padding(.horizontal)
+                        
+                        // Appearance Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("APPEARANCE")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            
+                            HStack {
+                                Text("SYSTEM THEME")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .tracking(1)
+                                Spacer()
+                                Picker("", selection: $appearanceMode) {
+                                    ForEach(AppearanceMode.allCases, id: \.self) { mode in
+                                        Text(mode.rawValue.uppercased()).tag(mode)
+                                    }
+                                }
+                                .pickerStyle(.segmented)
+                                .frame(width: 200)
+                            }
+                            .padding()
+                            .background(PoshTheme.Colors.cardBackground)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Stats Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("ARCHIVE STATISTICS")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            
+                            VStack(spacing: 12) {
+                                PoshDetailRow(label: "TOTAL GARMENTS", value: "\(allItems.count)")
+                                PoshDetailRow(label: "COLLECTIONS", value: "\(allCategories.count)")
+                            }
+                            .padding()
+                            .background(PoshTheme.Colors.cardBackground)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        
+                        // Data Management Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("DATA & PRIVACY")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            
+                            VStack(spacing: 0) {
+                                Button {
+                                    exportData()
+                                } label: {
+                                    HStack {
+                                        Label("EXPORT COLLECTION (JSON)", systemImage: "square.and.arrow.up")
+                                            .font(.system(size: 13, weight: .semibold))
+                                            .tracking(1)
+                                        Spacer()
+                                    }
+                                    .padding()
+                                }
+                                
+                                Divider().padding(.horizontal)
+                                
+                                Button(role: .destructive) {
+                                    showingClearConfirmation = true
+                                } label: {
+                                    HStack {
+                                        Label("CLEAR ALL DATA", systemImage: "trash")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .tracking(1)
+                                        Spacer()
+                                    }
+                                    .padding()
+                                }
+                            }
+                            .background(PoshTheme.Colors.cardBackground)
+                            .cornerRadius(12)
+                        }
+                        .padding(.horizontal)
+                        
+                        // About
+                        VStack(spacing: 8) {
+                            Text("THREADLIST")
+                                .font(.system(size: 12, weight: .bold))
+                                .tracking(3)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            Text("VERSION 1.0.0")
+                                .font(.system(size: 10, weight: .medium))
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.6))
+                        }
+                        .padding(.top, 40)
                     }
-                }
-                
-                // Data Management Section
-                Section("Data Management") {
-                    Button {
-                        exportData()
-                    } label: {
-                        Label("Export Data (JSON)", systemImage: "square.and.arrow.up")
-                    }
-                    
-                    Button(role: .destructive) {
-                        showingClearConfirmation = true
-                    } label: {
-                        Label("Clear All Data", systemImage: "trash")
-                    }
-                }
-                
-                // Stats Section
-                Section("Statistics") {
-                    HStack {
-                        Text("Total Items")
-                        Spacer()
-                        Text("\(allItems.count)")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Categories")
-                        Spacer()
-                        Text("\(allCategories.count)")
-                            .foregroundColor(.secondary)
-                    }
-                }
-                
-                // About Section
-                Section("About") {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
+                    .padding(.vertical, 24)
                 }
             }
-            .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("SETTINGS").font(.system(size: 14, weight: .bold)).tracking(2)
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Done") {
-                        dismiss()
-                    }
+                    Button("DONE") { dismiss() }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(PoshTheme.Colors.primaryAccentStart)
                 }
             }
             .alert("Clear All Data?", isPresented: $showingClearConfirmation) {
@@ -104,6 +174,8 @@ struct SettingsView: View {
                 }
             }
         }
+        .preferredColorScheme(appearanceMode.colorScheme)
+        .poshHeadline(size: 16) // Reset some base text defaults if needed
         .preferredColorScheme(appearanceMode.colorScheme)
     }
     

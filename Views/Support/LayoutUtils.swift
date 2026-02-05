@@ -3,19 +3,24 @@
 
 import SwiftUI
 
-/// A simple row for displaying a label and a value
-struct DetailRow: View {
+/// A posh row for displaying a label and a value in detail views
+struct PoshDetailRow: View {
     let label: String
     let value: String
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        HStack {
             Text(label)
-                .font(.caption)
-                .foregroundColor(.secondary)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1)
+                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+            
+            Spacer()
+            
             Text(value)
-                .font(.body)
+                .poshBody(size: 14, weight: .medium)
         }
+        .padding(.vertical, 4)
     }
 }
 

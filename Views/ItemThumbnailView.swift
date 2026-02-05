@@ -28,46 +28,43 @@ struct ItemThumbnailView: View {
                 if let image = image {
                     Image(uiImage: image)
                         .resizable()
-                        .aspectRatio(1, contentMode: .fill)
+                        .aspectRatio(contentMode: .fill)
                 } else {
-                    Rectangle()
-                        .fill(Color.secondary.opacity(0.2))
+                    PoshTheme.Colors.secondaryAccent.opacity(0.05)
                         .overlay {
-                            Image(systemName: "photo")
-                                .font(.title2)
-                                .foregroundColor(.secondary)
+                            Image(systemName: "handbag")
+                                .font(.system(size: 30, weight: .ultraLight))
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3))
                         }
                 }
             }
             .aspectRatio(1, contentMode: .fit)
             .clipped()
             
-            // Overlay with name
-            VStack(alignment: .leading, spacing: 2) {
-                if let brand = item.brand, !brand.isEmpty {
-                    Text(brand)
-                        .font(.caption2.weight(.medium))
-                        .foregroundColor(.white.opacity(0.9))
+            // Info Overlay
+            VStack {
+                Spacer()
+                VStack(alignment: .leading, spacing: 2) {
+                    if let brand = item.brand, !brand.isEmpty {
+                        Text(brand.uppercased())
+                            .font(.system(size: 8, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    }
+                    
+                    Text(item.name)
+                        .poshHeadline(size: 13)
+                        .lineLimit(1)
                 }
-                
-                Text(item.name)
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(.white)
-                    .lineLimit(1)
+                .padding(10)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(PoshTheme.Colors.cardBackground.opacity(0.85))
+                .background(.ultraThinMaterial)
             }
-            .padding(8)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(
-                LinearGradient(
-                    colors: [.clear, .black.opacity(0.6)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
         }
         .frame(width: size == .small ? size.dimension : nil)
         .aspectRatio(1, contentMode: .fit)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .poshCard()
         .onAppear {
             loadImage()
         }

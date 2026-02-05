@@ -11,28 +11,37 @@ struct ContentView: View {
     
     var body: some View {
         NavigationStack {
-            HomeView(searchText: $searchText, showingAddItem: $showingAddItem)
-                .navigationTitle("ThreadList")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button {
-                            showingSettings = true
-                        } label: {
-                            Image(systemName: "line.3.horizontal")
-                                .font(.title2)
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        NavigationLink {
-                            SearchView()
-                        } label: {
-                            Image(systemName: "magnifyingglass")
-                                .font(.title2)
-                        }
+            ZStack {
+                PoshTheme.Colors.background.ignoresSafeArea()
+                
+                HomeView(searchText: $searchText, showingAddItem: $showingAddItem)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    PoshHeader(title: "ThreadList")
+                }
+                
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button {
+                        showingSettings = true
+                    } label: {
+                        Image(systemName: "line.3.horizontal")
+                            .font(.system(size: 18, weight: .light))
+                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
                     }
                 }
+                
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink {
+                        SearchView()
+                    } label: {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 18, weight: .light))
+                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    }
+                }
+            }
         }
         .sheet(isPresented: $showingSettings) {
             SettingsView()

@@ -18,40 +18,56 @@ struct CategoryGridView: View {
     }
     
     var body: some View {
-        ScrollView {
-            if sortedItems.isEmpty {
-                VStack(spacing: 16) {
-                    Spacer(minLength: 100)
-                    
-                    Image(systemName: "tshirt")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary.opacity(0.5))
-                    
-                    Text("No items in \(category.name)")
-                        .font(.headline)
-                        .foregroundColor(.secondary)
-                    
-                    Text("Add items using the + button")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary.opacity(0.8))
-                }
-                .frame(maxWidth: .infinity)
-            } else {
-                LazyVGrid(columns: columns, spacing: 12) {
-                    ForEach(sortedItems) { item in
-                        NavigationLink {
-                            ItemDetailView(item: item)
-                        } label: {
-                            ItemThumbnailView(item: item, size: .large)
+        ZStack {
+            PoshTheme.Colors.background.ignoresSafeArea()
+            
+            ScrollView {
+                if sortedItems.isEmpty {
+                    VStack(spacing: 24) {
+                        Spacer(minLength: 120)
+                        
+                        Image(systemName: "handbag")
+                            .font(.system(size: 60, weight: .ultraLight))
+                            .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3))
+                        
+                        VStack(spacing: 8) {
+                            Text("ARCHIVE EMPTY")
+                                .font(.system(size: 14, weight: .bold))
+                                .tracking(3)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            
+                            Text("No items curated in \(category.name.uppercased()) yet.")
+                                .poshBody(size: 14)
+                                .opacity(0.6)
                         }
-                        .buttonStyle(.plain)
+                        
+                        Spacer()
                     }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    LazyVGrid(columns: columns, spacing: 16) {
+                        ForEach(sortedItems) { item in
+                            NavigationLink {
+                                ItemDetailView(item: item)
+                            } label: {
+                                ItemThumbnailView(item: item, size: .large)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 20)
                 }
-                .padding()
             }
         }
-        .navigationTitle(category.name)
-        .navigationBarTitleDisplayMode(.large)
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(category.name.uppercased())
+                    .font(.system(size: 14, weight: .bold))
+                    .tracking(2)
+            }
+        }
     }
 }
 

@@ -28,7 +28,6 @@ struct ItemDetailView: View {
     @State private var showingImageSourcePicker = false
     @State private var showingCamera = false
     @State private var showingPhotoPicker = false
-    @State private var showingImageCropper = false
     @State private var imageToCrop: UIImage?
     @State private var croppingItem: CroppableImage?
 
@@ -37,86 +36,84 @@ struct ItemDetailView: View {
     @State private var isProcessingImage = false
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 20) {
-                // Image
-                Group {
-                    if let image = isEditing ? (newImage ?? itemImage) : itemImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(1, contentMode: .fit)
-                            .overlay(alignment: .bottomTrailing) {
-                                if isEditing {
-                                    Button {
-                                        showingImageSourcePicker = true
-                                    } label: {
-                                        Image(systemName: "camera.fill")
-                                            .font(.title2)
-                                            .foregroundColor(.white)
-                                            .padding(12)
-                                            .background(Circle().fill(.ultraThinMaterial))
-                                    }
-                                    .padding(12)
-                                }
-                            }
-                    } else {
-                        Rectangle()
-                            .fill(Color.secondary.opacity(0.2))
-                            .aspectRatio(1, contentMode: .fit)
-                            .overlay {
-                                if isEditing {
-                                    Button {
-                                        showingImageSourcePicker = true
-                                    } label: {
-                                        VStack(spacing: 8) {
+        ZStack {
+            PoshTheme.Colors.background.ignoresSafeArea()
+            
+            ScrollView {
+                VStack(spacing: 24) {
+                    // Image
+                    Group {
+                        if let image = isEditing ? (newImage ?? itemImage) : itemImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                                .frame(maxWidth: .infinity)
+                                .poshCard()
+                                .overlay(alignment: .bottomTrailing) {
+                                    if isEditing {
+                                        Button {
+                                            showingImageSourcePicker = true
+                                        } label: {
                                             Image(systemName: "camera.fill")
-                                                .font(.largeTitle)
-                                            Text("Add Photo")
-                                                .font(.subheadline)
+                                                .font(.system(size: 18, weight: .light))
+                                                .foregroundColor(.white)
+                                                .padding(12)
+                                                .background(PoshTheme.Colors.primaryGradient)
+                                                .clipShape(Circle())
+                                                .shadow(color: .black.opacity(0.1), radius: 5)
                                         }
-                                        .foregroundColor(.secondary)
+                                        .padding(16)
                                     }
-                                } else {
-                                    Image(systemName: "photo")
-                                        .font(.largeTitle)
-                                        .foregroundColor(.secondary)
                                 }
-                            }
+                        } else {
+                            PoshTheme.Colors.cardBackground
+                                .aspectRatio(1, contentMode: .fit)
+                                .poshCard()
+                                .overlay {
+                                    Image(systemName: "handbag")
+                                        .font(.system(size: 40, weight: .thin))
+                                        .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3))
+                                }
+                        }
                     }
-                }
-                .clipShape(RoundedRectangle(cornerRadius: 16))
-                .padding(.horizontal)
-                .onTapGesture {
-                    if isEditing {
-                        showingImageSourcePicker = true
+                    .padding(.horizontal, 20)
+                    
+                    // Details
+                    VStack(spacing: 24) {
+                        if isEditing {
+                            editingView
+                        } else {
+                            detailView
+                        }
                     }
+                    .padding(.horizontal, 20)
                 }
-                
-                // Details
-                VStack(spacing: 16) {
-                    if isEditing {
-                        editingView
-                    } else {
-                        detailView
-                    }
-                }
-                .padding(.horizontal)
+                .padding(.vertical, 20)
             }
-            .padding(.vertical)
         }
-        .navigationTitle(isEditing ? "Edit Item" : item.name)
+        .navigationTitle(isEditing ? "" : "") // Handle navigation title via Principal Toolbar
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text(isEditing ? "EDIT COMPOSITION" : item.name.uppercased())
+                    .font(.system(size: 14, weight: .bold))
+                    .tracking(2)
+                    .foregroundColor(PoshTheme.Colors.headline)
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 if isEditing {
-                    Button("Done") {
+                    Button("DONE") {
                         saveEdits()
                     }
-                    .fontWeight(.semibold)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(PoshTheme.Colors.primaryAccentStart)
                 } else {
-                    Button("Edit") {
+                    Button("EDIT") {
                         startEditing()
                     }
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(PoshTheme.Colors.primaryAccentStart)
                 }
             }
         }
@@ -208,144 +205,139 @@ struct ItemDetailView: View {
     }
     
     private var detailView: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Name and Category
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.name)
-                    .font(.title.weight(.bold))
-                
-                if let category = item.category {
-                    Text(category.name)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Color.secondary.opacity(0.15))
-                        .clipShape(Capsule())
-                }
-            }
-            
-            Divider()
-            
-            // Details Grid
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 12) {
-                if let brand = item.brand, !brand.isEmpty {
-                    DetailRow(label: "Brand", value: brand)
-                }
-                
-                if let size = item.size, !size.isEmpty {
-                    DetailRow(label: "Size", value: size)
-                }
-                
-                DetailRow(label: "Added", value: item.dateAdded.formatted(date: .abbreviated, time: .omitted))
-            }
-            
-            // Tags
-            if !item.tags.isEmpty {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Tags")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.secondary)
+        VStack(alignment: .leading, spacing: 28) {
+            // General Info Card
+            VStack(alignment: .leading, spacing: 20) {
+                HStack(alignment: .firstTextBaseline) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("COLLECTION")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        
+                        if let category = item.category {
+                            Text(category.name)
+                                .poshHeadline(size: 24)
+                        } else {
+                            Text("Uncategorized")
+                                .poshHeadline(size: 24)
+                        }
+                    }
                     
-                    FlowLayout(spacing: 8) {
+                    Spacer()
+                    
+                    if let brand = item.brand, !brand.isEmpty {
+                        Text(brand.uppercased())
+                            .font(.system(size: 12, weight: .bold))
+                            .tracking(2)
+                            .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                    }
+                }
+                
+                Divider().background(PoshTheme.Colors.secondaryAccent.opacity(0.2))
+                
+                // Details Grid
+                VStack(spacing: 16) {
+                    if let size = item.size, !size.isEmpty {
+                        PoshDetailRow(label: "SIZE", value: size)
+                    }
+                    
+                    PoshDetailRow(label: "ACQUIRED", value: item.dateAdded.formatted(date: .abbreviated, time: .omitted))
+                }
+            }
+            .padding(24)
+            .poshCard()
+            
+            // Tags Card
+            if !item.tags.isEmpty {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("CHARACTERISTICS")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    
+                    FlowLayout(spacing: 10) {
                         ForEach(item.tags, id: \.self) { tag in
-                            Text("#\(tag)")
-                                .font(.caption)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(Color.accentColor.opacity(0.15))
-                                .foregroundColor(.accentColor)
+                            Text(tag.uppercased())
+                                .font(.system(size: 11, weight: .semibold))
+                                .tracking(1)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(PoshTheme.Colors.secondaryAccent.opacity(0.1))
+                                .foregroundColor(PoshTheme.Colors.body)
                                 .clipShape(Capsule())
                         }
                     }
                 }
+                .padding(24)
+                .poshCard()
             }
             
-            Spacer(minLength: 20)
-            
-            // Delete Button
-            Button(role: .destructive) {
-                showingDeleteConfirmation = true
-            } label: {
-                HStack {
-                    Image(systemName: "trash")
-                    Text("Delete Item")
+            // Actions
+            VStack(spacing: 16) {
+                Button(role: .destructive) {
+                    showingDeleteConfirmation = true
+                } label: {
+                    Text("REMOVE FROM CLOSET")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.red.opacity(0.8))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(RoundedRectangle(cornerRadius: 30).stroke(.red.opacity(0.2), lineWidth: 1))
                 }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.red.opacity(0.1))
-                .foregroundColor(.red)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
             }
+            .padding(.top, 20)
         }
     }
     
     private var editingView: some View {
-        VStack(spacing: 16) {
-            // Change Photo Button
-            Button {
-                showingImageSourcePicker = true
-            } label: {
-                HStack {
-                    Image(systemName: "photo.on.rectangle.angled")
-                    Text("Change Photo")
-                }
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.accentColor.opacity(0.1))
-                .foregroundColor(.accentColor)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Name")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.secondary)
-                TextField("Item name", text: $editName)
-                    .textFieldStyle(.roundedBorder)
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Category")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.secondary)
-                Picker("Category", selection: $editCategory) {
-                    Text("None").tag(nil as Category?)
-                    ForEach(categories) { category in
-                        Text(category.name).tag(category as Category?)
+        VStack(alignment: .leading, spacing: 24) {
+            VStack(spacing: 16) {
+                PoshTextField(label: "NAME", text: $editName)
+                
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("CATEGORY")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    
+                    Menu {
+                        ForEach(categories) { category in
+                            Button(category.name) {
+                                editCategory = category
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(editCategory?.name ?? "Select Category")
+                                .poshBody(size: 16)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        }
+                        .padding(.vertical, 12)
+                        .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
                     }
                 }
-                .pickerStyle(.menu)
+                
+                PoshTextField(label: "BRAND", text: $editBrand)
+                PoshTextField(label: "SIZE", text: $editSize)
+                PoshTextField(label: "TAGS", text: $editTagsText)
             }
+            .padding(24)
+            .poshCard()
             
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Brand")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.secondary)
-                TextField("Brand (optional)", text: $editBrand)
-                    .textFieldStyle(.roundedBorder)
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Size")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.secondary)
-                TextField("Size (optional)", text: $editSize)
-                    .textFieldStyle(.roundedBorder)
-            }
-            
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Tags")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundColor(.secondary)
-                TextField("Comma separated tags", text: $editTagsText)
-                    .textFieldStyle(.roundedBorder)
-            }
-            
-            Button("Cancel", role: .cancel) {
+            Button {
                 cancelEditing()
+            } label: {
+                Text("DISCARD EDITS")
+                    .font(.system(size: 11, weight: .bold))
+                    .tracking(1)
+                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    .frame(maxWidth: .infinity)
             }
-            .padding(.top)
         }
     }
     

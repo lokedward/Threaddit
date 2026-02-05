@@ -14,16 +14,16 @@ struct CategoryShelfView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
-            HStack {
+            HStack(alignment: .firstTextBaseline) {
                 Text(category.name)
-                    .font(.title3.weight(.semibold))
+                    .poshHeadline(size: 20)
                 
                 Text("\(category.items.count)")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 2)
-                    .background(Color.secondary.opacity(0.15))
+                    .background(PoshTheme.Colors.secondaryAccent.opacity(0.1))
                     .clipShape(Capsule())
                 
                 Spacer()
@@ -32,8 +32,8 @@ struct CategoryShelfView: View {
                     CategoryGridView(category: category)
                 } label: {
                     Text("See All")
-                        .font(.subheadline.weight(.medium))
-                        .foregroundColor(.accentColor)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(PoshTheme.Colors.primaryAccentStart)
                 }
             }
             .padding(.horizontal)

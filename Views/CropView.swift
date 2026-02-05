@@ -80,14 +80,23 @@ struct CropView: View {
             .navigationTitle("Crop Image")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("REFINE FRAME").font(.system(size: 13, weight: .bold)).tracking(2)
+                        .foregroundColor(.white)
+                }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { onCancel() }
+                    Button("CANCEL") { onCancel() }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white.opacity(0.8))
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { handleDone() }
-                        .fontWeight(.semibold)
+                    Button("CONFIRM") { handleDone() }
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(PoshTheme.Colors.primaryAccentStart)
                 }
             }
+            .toolbarBackground(.black, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
     

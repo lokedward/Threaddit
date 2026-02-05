@@ -16,54 +16,80 @@ struct CategoryManagementView: View {
     @State private var showingDeleteConfirmation = false
     
     var body: some View {
-        List {
-            Section {
-                ForEach(categories) { category in
-                    HStack {
-                        Text(category.name)
-                        
-                        Spacer()
-                        
-                        Text("\(category.items.count) items")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                    }
-                    .contentShape(Rectangle())
-                    .contextMenu {
-                        Button {
-                            editingCategory = category
-                            editCategoryName = category.name
-                        } label: {
-                            Label("Rename", systemImage: "pencil")
+        ZStack {
+            PoshTheme.Colors.background.ignoresSafeArea()
+            
+            List {
+                Section {
+                    ForEach(categories) { category in
+                        HStack {
+                            Text(category.name)
+                                .poshHeadline(size: 17)
+                            
+                            Spacer()
+                            
+                            Text("\(category.items.count) items")
+                                .font(.system(size: 11, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
                         }
-                        
-                        Button(role: .destructive) {
-                            categoryToDelete = category
-                            showingDeleteConfirmation = true
-                        } label: {
-                            Label("Delete", systemImage: "trash")
+                        .listRowBackground(PoshTheme.Colors.cardBackground)
+                        .contentShape(Rectangle())
+                        .contextMenu {
+                            Button {
+                                editingCategory = category
+                                editCategoryName = category.name
+                            } label: {
+                                Label("Rename", systemImage: "pencil")
+                            }
+                            
+                            Button(role: .destructive) {
+                                categoryToDelete = category
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
+                    .onMove(perform: moveCategories)
+                    .onDelete { offsets in
+                        // Basic delete support for edit mode
+                        offsets.forEach { index in
+                            deleteCategory(categories[index])
+                        }
+                    }
+                } header: {
+                    Text("COLLECTIONS")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(2)
+                } footer: {
+                    Text("DRAG TO REORDER. ITEMS FROM DELETED COLLECTIONS BECOME UNCATEGORIZED.")
+                        .font(.system(size: 9))
+                        .tracking(1)
                 }
-                .onMove(perform: moveCategories)
-            } header: {
-                Text("Long press to rename or delete")
-            } footer: {
-                Text("Drag to reorder categories. Items in deleted categories will become uncategorized.")
             }
+            .scrollContentBackground(.hidden)
         }
-        .navigationTitle("Categories")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                Text("CATEGORIES").font(.system(size: 14, weight: .bold)).tracking(2)
+            }
+            
             ToolbarItem(placement: .navigationBarTrailing) {
                 Button {
                     showingAddCategory = true
                 } label: {
                     Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .light))
+                        .foregroundColor(PoshTheme.Colors.primaryAccentStart)
                 }
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
                 EditButton()
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
             }
         }
         .alert("Add Category", isPresented: $showingAddCategory) {

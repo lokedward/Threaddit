@@ -17,7 +17,6 @@ struct AddItemView: View {
     @State private var showingImageSourcePicker = true
     @State private var showingCamera = false
     @State private var showingPhotoPicker = false
-    @State private var showingImageCropper = false
     @State private var imageToCrop: UIImage?
     @State private var croppingItem: CroppableImage?
 
@@ -38,83 +37,132 @@ struct AddItemView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
-                // Image Section
-                Section {
-                    if let image = selectedImage {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(1, contentMode: .fill)
-                            .frame(height: 250)
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                            .listRowInsets(EdgeInsets())
-                            .listRowBackground(Color.clear)
-                        
-                        HStack {
-                            Spacer()
-                            
-                            Button("Change Photo") {
-                                showingImageSourcePicker = true
+            ZStack {
+                PoshTheme.Colors.background.ignoresSafeArea()
+                
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Image Section
+                        VStack(spacing: 16) {
+                            if let image = selectedImage {
+                                Image(uiImage: image)
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fill)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 300)
+                                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                                    .poshCard()
+                                
+                                Button {
+                                    showingImageSourcePicker = true
+                                } label: {
+                                    Text("CHANGE PHOTO")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                                }
+                            } else {
+                                Button {
+                                    showingImageSourcePicker = true
+                                } label: {
+                                    VStack(spacing: 20) {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 30, weight: .light))
+                                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                            .padding(20)
+                                            .background(Circle().stroke(PoshTheme.Colors.secondaryAccent.opacity(0.3), lineWidth: 1))
+                                        
+                                        Text("ADD PHOTOGRAPH")
+                                            .font(.system(size: 12, weight: .bold))
+                                            .tracking(2)
+                                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 300)
+                                    .background(PoshTheme.Colors.cardBackground)
+                                    .cornerRadius(16)
+                                    .poshCard()
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
-                    } else {
-                        Button {
-                            showingImageSourcePicker = true
-                        } label: {
-                            VStack(spacing: 12) {
-                                Image(systemName: "camera.fill")
-                                    .font(.system(size: 40))
-                                    .foregroundColor(.secondary)
+                        
+                        // Details Section
+                        VStack(alignment: .leading, spacing: 20) {
+                            Text("Item Details")
+                                .poshHeadline(size: 20)
+                            
+                            VStack(spacing: 16) {
+                                PoshTextField(label: "NAME", text: $name, placeholder: "e.g. Classic Trench Coat")
                                 
-                                Text("Add Photo")
-                                    .font(.headline)
-                                    .foregroundColor(.secondary)
+                                // Precise Category Picker
+                                VStack(alignment: .leading, spacing: 8) {
+                                    Text("CATEGORY")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                    
+                                    Menu {
+                                        ForEach(categories) { category in
+                                            Button(category.name) {
+                                                selectedCategory = category
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(selectedCategory?.name ?? "Select Category")
+                                                .poshBody(size: 16)
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .font(.system(size: 12, weight: .semibold))
+                                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                        }
+                                        .padding(.vertical, 12)
+                                        .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+                                    }
+                                }
+                                
+                                PoshTextField(label: "BRAND", text: $brand, placeholder: "Optional")
+                                PoshTextField(label: "SIZE", text: $size, placeholder: "Optional")
+                                PoshTextField(label: "TAGS", text: $tagsText, placeholder: "Separated by commas")
+                            }
+                        }
+                        .padding(24)
+                        .poshCard()
+                        
+                        // Save Button
+                        Button {
+                            saveItem()
+                        } label: {
+                            HStack {
+                                if isSaving {
+                                    ProgressView().tint(.white)
+                                } else {
+                                    Text("SAVE TO CLOSET")
+                                        .tracking(2)
+                                }
                             }
                             .frame(maxWidth: .infinity)
-                            .frame(height: 200)
-                            .background(Color.secondary.opacity(0.1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
-                        .buttonStyle(.plain)
-                        .listRowInsets(EdgeInsets())
-                        .listRowBackground(Color.clear)
+                        .poshButton()
+                        .disabled(!canSave || isSaving)
+                        .opacity(canSave ? 1.0 : 0.6)
+                        .padding(.top, 8)
                     }
-                }
-                
-                // Required Info
-                Section("Item Details") {
-                    TextField("Name", text: $name)
-                    
-                    Picker("Category", selection: $selectedCategory) {
-                        Text("Select a category").tag(nil as Category?)
-                        ForEach(categories) { category in
-                            Text(category.name).tag(category as Category?)
-                        }
-                    }
-                }
-                
-                // Optional Info
-                Section("Additional Info (Optional)") {
-                    TextField("Brand", text: $brand)
-                    TextField("Size", text: $size)
-                    TextField("Tags (comma separated)", text: $tagsText)
+                    .padding(20)
+                    .padding(.bottom, 40)
                 }
             }
-            .navigationTitle("Add Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
+                ToolbarItem(placement: .principal) {
+                    Text("New Item").poshHeadline(size: 18)
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Save") {
-                        saveItem()
-                    }
-                    .fontWeight(.semibold)
-                    .disabled(!canSave || isSaving)
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") { dismiss() }
+                        .poshBody(size: 16)
+                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
                 }
             }
             .confirmationDialog("Choose Photo Source", isPresented: $showingImageSourcePicker) {
@@ -243,4 +291,26 @@ struct AddItemView: View {
 #Preview {
     AddItemView()
         .modelContainer(for: [ClothingItem.self, Category.self], inMemory: true)
+}
+
+// MARK: - Support Components
+
+struct PoshTextField: View {
+    let label: String
+    @Binding var text: String
+    var placeholder: String = ""
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(label)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1)
+                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+            
+            TextField(placeholder, text: $text)
+                .poshBody(size: 16)
+                .padding(.vertical, 12)
+                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+        }
+    }
 }

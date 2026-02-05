@@ -42,15 +42,15 @@ struct HomeView: View {
                 showingAddItem = true
             } label: {
                 Image(systemName: "plus")
-                    .font(.title.weight(.semibold))
+                    .font(.system(size: 24, weight: .light))
                     .foregroundColor(.white)
-                    .frame(width: 60, height: 60)
-                    .background(Color.accentColor)
+                    .frame(width: 64, height: 64)
+                    .background(PoshTheme.Colors.primaryGradient)
                     .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.2), radius: 8, x: 0, y: 4)
+                    .shadow(color: PoshTheme.Colors.primaryAccentStart.opacity(0.3), radius: 10, x: 0, y: 5)
             }
-            .padding(.trailing, 20)
-            .padding(.bottom, 20)
+            .padding(.trailing, 24)
+            .padding(.bottom, 24)
         }
     }
 }
@@ -61,16 +61,15 @@ struct EmptyClosetView: View {
             Spacer()
             
             Image(systemName: "tshirt")
-                .font(.system(size: 80))
-                .foregroundColor(.secondary.opacity(0.5))
+                .font(.system(size: 64, weight: .thin))
+                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.4))
             
             Text("Your closet is empty")
-                .font(.title2.weight(.medium))
-                .foregroundColor(.secondary)
+                .poshHeadline(size: 20)
             
             Text("Tap the + button to add your first item")
-                .font(.subheadline)
-                .foregroundColor(.secondary.opacity(0.8))
+                .poshBody(size: 14)
+                .opacity(0.7)
             
             Spacer()
         }
