@@ -92,7 +92,8 @@ struct AddItemView: View {
                 croppingItem: $croppingItem,
                 imageToCrop: $imageToCrop,
                 isProcessingImage: $isProcessingImage,
-                onSingleProcessed: { img in croppingItem = CroppableImage(image: img) },
+                onInitialImage: { img in croppingItem = CroppableImage(image: img) },
+                onFinalImage: { img in selectedImage = img },
                 onBulkProcessed: { imgs in 
                     bulkImageQueue = imgs
                     totalBulkItems = imgs.count
@@ -337,7 +338,8 @@ struct AddItemPickerModifiers: ViewModifier {
     @Binding var imageToCrop: UIImage?
     @Binding var isProcessingImage: Bool
     
-    let onSingleProcessed: (UIImage) -> Void
+    let onInitialImage: (UIImage) -> Void
+    let onFinalImage: (UIImage) -> Void
     let onBulkProcessed: ([UIImage]) -> Void
     
     func body(content: Content) -> some View {
@@ -354,7 +356,7 @@ struct AddItemPickerModifiers: ViewModifier {
             }
             .fullScreenCover(item: $croppingItem) { item in
                 CropView(image: item.image) { croppedImage in
-                    onSingleProcessed(croppedImage)
+                    onFinalImage(croppedImage)
                     croppingItem = nil
                 } onCancel: {
                     croppingItem = nil
@@ -371,7 +373,7 @@ struct AddItemPickerModifiers: ViewModifier {
     private func handleCameraDismiss() {
         if let image = imageToCrop {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                onSingleProcessed(image)
+                onInitialImage(image)
             }
         }
     }
@@ -382,7 +384,7 @@ struct AddItemPickerModifiers: ViewModifier {
             if let data = try? await item.loadTransferable(type: Data.self),
                let img = UIImage.downsample(imageData: data, to: CGSize(width: 1500, height: 1500)) {
                 await MainActor.run {
-                    onSingleProcessed(img)
+                    onInitialImage(img)
                     selectedPhotoItem = nil
                     isProcessingImage = false
                 }
