@@ -14,7 +14,7 @@ struct AddItemView: View {
     // Image selection
     @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var showingImageSourcePicker = true
+    @State private var showingImageSourcePicker = false
     @State private var showingCamera = false
     @State private var showingPhotoPicker = false
     @State private var imageToCrop: UIImage?
