@@ -9,7 +9,7 @@ enum ThumbnailSize {
     
     var dimension: CGFloat {
         switch self {
-        case .small: return 120
+        case .small: return 140
         case .large: return 0 // flexible
         }
     }
