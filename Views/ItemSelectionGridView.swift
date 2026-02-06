@@ -59,6 +59,13 @@ struct SelectableItemThumbnail: View {
                 }
             }
         }
-        .buttonStyle(.plain)
+        .buttonStyle(NoHighlightButtonStyle())
+    }
+}
+
+struct NoHighlightButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .opacity(configuration.isPressed ? 0.9 : 1.0)
     }
 }

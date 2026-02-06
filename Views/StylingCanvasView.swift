@@ -26,6 +26,7 @@ struct StylingCanvasView: View {
                     StylistService.shared.layeringOrder(for: $0) < StylistService.shared.layeringOrder(for: $1)
                 }) { item in
                     ItemLayer(item: item)
+                        .zIndex(Double(StylistService.shared.layeringOrder(for: item)))
                         .transition(.scale.combined(with: .opacity))
                 }
             }
@@ -106,7 +107,8 @@ struct VibeCheckView: View {
 struct ItemLayer: View {
     let item: ClothingItem
     @State private var image: UIImage?
-    @State private var offset: CGSize = .zero
+    @State private var position: CGSize = .zero
+    @State private var dragOffset: CGSize = .zero
     
     var body: some View {
         Group {
@@ -116,11 +118,16 @@ struct ItemLayer: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(height: frameHeight)
                     .poshCard()
-                    .offset(offset)
+                    .offset(x: position.width + dragOffset.width, y: position.height + dragOffset.height)
                     .gesture(
                         DragGesture()
                             .onChanged { gesture in
-                                offset = gesture.translation
+                                dragOffset = gesture.translation
+                            }
+                            .onEnded { gesture in
+                                position.width += gesture.translation.width
+                                position.height += gesture.translation.height
+                                dragOffset = .zero
                             }
                     )
             } else {
