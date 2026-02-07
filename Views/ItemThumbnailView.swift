@@ -18,6 +18,7 @@ enum ThumbnailSize {
 struct ItemThumbnailView: View {
     let item: ClothingItem
     var size: ThumbnailSize = .small
+    var showLabel: Bool = false
     
     @State private var image: UIImage?
     
@@ -40,28 +41,31 @@ struct ItemThumbnailView: View {
                 }
                 .clipped()
             
-            // Info Overlay
-            VStack {
-                Spacer()
-                VStack(alignment: .leading, spacing: 2) {
-                    if let brand = item.brand, !brand.isEmpty {
-                        Text(brand.uppercased())
-                            .font(.system(size: 8, weight: .bold))
-                            .tracking(1)
-                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+            // Info Overlay (conditionally shown)
+            if showLabel {
+                VStack {
+                    Spacer()
+                    VStack(alignment: .leading, spacing: 2) {
+                        if let brand = item.brand, !brand.isEmpty {
+                            Text(brand.uppercased())
+                                .font(.system(size: 8, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.7))
+                                .lineLimit(1)
+                        }
+                        
+                        Text(item.name)
+                            .poshHeadline(size: 13)
+                            .foregroundColor(PoshTheme.Colors.headline.opacity(0.85))
                             .lineLimit(1)
                     }
-                    
-                    Text(item.name)
-                        .poshHeadline(size: 13)
-                        .lineLimit(1)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(PoshTheme.Colors.cardBackground.opacity(0.85))
+                    .background(.ultraThinMaterial)
                 }
-                .padding(10)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(PoshTheme.Colors.cardBackground.opacity(0.85))
-                .background(.ultraThinMaterial)
+                .clipped()
             }
-            .clipped()
         }
         .aspectRatio(1, contentMode: .fit)
         .poshCard()
