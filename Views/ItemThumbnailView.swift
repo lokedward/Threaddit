@@ -63,7 +63,7 @@ struct ItemThumbnailView: View {
             }
             .clipped()
         }
-        .frame(width: size == .small ? size.dimension : nil)
+        .aspectRatio(1, contentMode: .fit)
         .poshCard()
         .onAppear {
             loadImage()

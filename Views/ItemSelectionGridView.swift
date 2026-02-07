@@ -68,6 +68,8 @@ struct SelectableItemThumbnail: View {
             }
         }
         .buttonStyle(NoHighlightButtonStyle())
+        .frame(maxWidth: .infinity)
+        .aspectRatio(1, contentMode: .fit)
     }
 }
 
