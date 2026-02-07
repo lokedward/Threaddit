@@ -46,6 +46,7 @@ struct CategoryShelfView: View {
                             ItemDetailView(item: item)
                         } label: {
                             ItemThumbnailView(item: item)
+                                .frame(width: 140)
                         }
                         .buttonStyle(.plain)
                     }
