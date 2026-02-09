@@ -134,20 +134,16 @@ extension Color {
 
 struct PoshHeader: View {
     let title: String
-    var showTitle: Bool = true
     
     var body: some View {
         HStack(spacing: 8) {
-            // Use header_icon from the asset catalog
-            Image("header_icon")
+            Image("app_icon") // This will use Icons/app_icon.png if properly added to assets
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 36, height: 36)
+                .frame(width: 28, height: 28)
             
-            if showTitle {
-                Text(title)
-                    .poshHeadline(size: 24)
-            }
+            Text(title)
+                .poshHeadline(size: 24)
         }
     }
 }
