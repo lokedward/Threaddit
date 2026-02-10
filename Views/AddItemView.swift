@@ -73,6 +73,7 @@ struct AddItemView: View {
                 selectedImage: selectedImage,
                 bulkImageQueue: bulkImageQueue,
                 totalBulkItems: totalBulkItems,
+                itemsRemaining: !emailItemsQueue.isEmpty ? emailItemsQueue.count : nil,
                 isSaving: isSaving,
                 categories: categories,
                 onAddPhoto: { showingImageSourcePicker = true },
@@ -120,6 +121,7 @@ struct AddItemView: View {
                 if let prefilled = prefilledItems, !prefilled.isEmpty {
                     additionMode = .multiple
                     emailItemsQueue = prefilled
+                    totalBulkItems = prefilled.count
                     loadNextEmailItem()
                 } else if selectedCategory == nil { 
                     selectedCategory = categories.first 
@@ -228,6 +230,7 @@ struct MainFormView: View {
     let selectedImage: UIImage?
     let bulkImageQueue: [UIImage]
     let totalBulkItems: Int
+    var itemsRemaining: Int? = nil
     let isSaving: Bool
     let categories: [Category]
     
@@ -258,7 +261,7 @@ struct MainFormView: View {
                             ).equatable()
                             
                             if additionMode == .multiple {
-                                let currentItemIndex = totalBulkItems - bulkImageQueue.count + 1
+                                let currentItemIndex = totalBulkItems - (itemsRemaining ?? bulkImageQueue.count) + 1
                                 Text("ITEM \(currentItemIndex) OF \(totalBulkItems)")
                                     .font(.system(size: 10, weight: .bold)).tracking(2)
                                     .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.6))
