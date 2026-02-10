@@ -55,6 +55,11 @@ struct AddItemView: View {
         return hasImage && !name.isEmpty && selectedCategory != nil
     }
     
+    var skipAction: (() -> Void)? {
+        if emailItemsQueue.isEmpty { return nil }
+        return skipEmailItem
+    }
+    
     var body: some View {
         NavigationStack {
             MainFormView(
@@ -74,7 +79,7 @@ struct AddItemView: View {
                 onOpenBulkGallery: { showingBulkPhotoPicker = true },
                 onSave: saveItem,
                 onCropComplete: { img in selectedImage = img },
-                onSkip: emailItemsQueue.isEmpty ? nil : skipEmailItem
+                onSkip: skipAction
             )
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
