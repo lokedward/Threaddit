@@ -4,7 +4,6 @@
 import Foundation
 import SwiftUI
 import GoogleSignIn
-internal import Combine
 
 // MARK: - Service
 
@@ -193,34 +192,7 @@ class EmailOnboardingService: ObservableObject {
         
         let (messageData, _) = try await URLSession.shared.data(for: messageRequest)
         
-        struct MessageResponse: Codable {
-            let id: String
-            let payload: Payload
-            let internalDate: String?
-            
-            struct Payload: Codable {
-                let headers: [Header]
-                let body: Body?
-                let parts: [Part]?
-            }
-            
-            struct Header: Codable {
-                let name: String
-                let value: String
-            }
-            
-            struct Body: Codable {
-                let data: String?
-            }
-            
-            struct Part: Codable {
-                let mimeType: String?
-                let body: Body?
-                let parts: [Part]?
-            }
-        }
-        
-        let response = try JSONDecoder().decode(MessageResponse.self, from: messageData)
+        let response = try JSONDecoder().decode(GmailMessageResponse.self, from: messageData)
         
         // Extract headers
         let headers = response.payload.headers
@@ -247,7 +219,7 @@ class EmailOnboardingService: ObservableObject {
         )
     }
     
-    private func extractHTMLBody(from payload: MessageResponse.Payload) -> String? {
+    private func extractHTMLBody(from payload: GmailMessageResponse.Payload) -> String? {
         // Check body directly
         if let bodyData = payload.body?.data {
             return decodeBase64URL(bodyData)
@@ -261,7 +233,7 @@ class EmailOnboardingService: ObservableObject {
                 }
                 // Recursively check nested parts
                 if let nestedParts = part.parts {
-                    let nestedPayload = MessageResponse.Payload(headers: [], body: nil, parts: nestedParts)
+                    let nestedPayload = GmailMessageResponse.Payload(headers: [], body: nil, parts: nestedParts)
                     if let html = extractHTMLBody(from: nestedPayload) {
                         return html
                     }
@@ -339,9 +311,14 @@ class EmailOnboardingService: ObservableObject {
                 continue
             }
             
+            // Convert Data to UIImage
+            guard let uiImage = UIImage(data: imageData) else {
+                continue
+            }
+            
             // Save image
             let imageID = UUID()
-            ImageStorageService.shared.saveImage(imageData, withID: imageID)
+            ImageStorageService.shared.saveImage(uiImage, withID: imageID)
             
             // Create ClothingItem
             let item = ClothingItem(
@@ -489,6 +466,35 @@ struct GmailMessage {
     let subject: String
     let date: Date
     let htmlBody: String?
+}
+
+// MARK: - Gmail API Response Types
+
+struct GmailMessageResponse: Codable {
+    let id: String
+    let payload: Payload
+    let internalDate: String?
+    
+    struct Payload: Codable {
+        let headers: [Header]
+        let body: Body?
+        let parts: [Part]?
+    }
+    
+    struct Header: Codable {
+        let name: String
+        let value: String
+    }
+    
+    struct Body: Codable {
+        let data: String?
+    }
+    
+    struct Part: Codable {
+        let mimeType: String?
+        let body: Body?
+        let parts: [Part]?
+    }
 }
 
 // MARK: - Parser Protocol
