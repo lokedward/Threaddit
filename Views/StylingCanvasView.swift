@@ -5,7 +5,7 @@ import SwiftUI
 
 struct StylingCanvasView: View {
     let selectedItems: [ClothingItem]
-    let gender: StylistView.Gender
+    let gender: Gender
     
     @State private var generatedImage: UIImage?
     @State private var isGenerating = false
