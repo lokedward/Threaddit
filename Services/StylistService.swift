@@ -149,7 +149,7 @@ class StylistService {
         \(modelDescription):
         \(clothingList)
         
-        Full body portrait, 3/4 angle view, neutral grey studio background, soft key lighting with subtle rim light, editorial fashion photography, photorealistic, sharp focus on clothing details, professional studio quality
+        Full body close up portrait, 3/4 angle view, neutral grey studio background, soft key lighting with subtle rim light, editorial fashion photography, photorealistic, sharp focus on clothing details, professional studio quality
         """
     }
     
