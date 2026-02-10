@@ -15,6 +15,13 @@ class StylistService {
     @AppStorage("lastResetDate") private var lastResetDate: String = ""
     @AppStorage("userTier") private var userTierRaw: String = "free"
     
+    // MARK: - Testing Override
+    @Published var forceProvider: AIProvider? = nil // Set to override tier-based selection
+    
+    enum AIProvider {
+        case sdxl, imagen
+    }
+    
     var userTier: GenerationTier {
         get { userTierRaw == "premium" ? .premium : .free }
         set { userTierRaw = newValue == .premium ? "premium" : "free" }
@@ -87,13 +94,24 @@ class StylistService {
         // Build the prompt
         let prompt = buildPrompt(for: items, gender: gender)
         
-        // Call appropriate API based on tier
+        // Call appropriate API based on forceProvider (testing override) or tier
         let generatedImageData: Data
-        switch userTier {
-        case .free:
-            generatedImageData = try await callStabilityAPI(prompt: prompt)
-        case .premium:
-            generatedImageData = try await callImagenAPI(prompt: prompt)
+        if let forced = forceProvider {
+            // Override: use manually selected provider
+            switch forced {
+            case .sdxl:
+                generatedImageData = try await callStabilityAPI(prompt: prompt)
+            case .imagen:
+                generatedImageData = try await callImagenAPI(prompt: prompt)
+            }
+        } else {
+            // Normal flow: use tier-based selection
+            switch userTier {
+            case .free:
+                generatedImageData = try await callStabilityAPI(prompt: prompt)
+            case .premium:
+                generatedImageData = try await callImagenAPI(prompt: prompt)
+            }
         }
         
         guard let image = UIImage(data: generatedImageData) else {
