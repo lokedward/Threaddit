@@ -840,7 +840,7 @@ class GenericEmailParser: EmailParser {
             var localCandidates: [ProductData] = []
             let imgTagPattern = #"<img\s+([^>]+)>"#
             let regex = try? NSRegularExpression(pattern: imgTagPattern, options: .caseInsensitive)
-            let matches = regex?.matches(in: htmlString, range: NSRange(htmlString.startIndex..<htmlString.endIndex, in: htmlString)) ?? []
+            let matches = regex?.matches(in: htmlString, range: NSRange(htmlString.startIndex..., in: htmlString)) ?? []
             
             var seenURLs = Set<URL>()
             
@@ -1238,7 +1238,7 @@ class LululemonEmailParser: EmailParser {
         // Matches width="150" or width: 150px style
         let imgPattern = #"<img[^>]+width=["']?150["']?[^>]*>"#
         let regex = try NSRegularExpression(pattern: imgPattern, options: .caseInsensitive)
-        let matches = regex.matches(in: html, range: NSRange(html.startIndex..<html.endIndex, in: html))
+        let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
         
         var seenURLs = Set<URL>()
         
@@ -1266,7 +1266,7 @@ class LululemonEmailParser: EmailParser {
             // Look for <a ...>Product Name</a>
             // Reject "Edit", "Remove", "View Details"
             if let linkRegex = try? NSRegularExpression(pattern: #"<a[^>]*>([^<]+)</a>"#, options: .caseInsensitive) {
-                let linkMatches = linkRegex.matches(in: searchRegion, range: NSRange(searchRegion.startIndex..<searchRegion.endIndex, in: searchRegion))
+                let linkMatches = linkRegex.matches(in: searchRegion, range: NSRange(searchRegion.startIndex..., in: searchRegion))
                 
                 for linkMatch in linkMatches {
                     if let textRange = Range(linkMatch.range(at: 1), in: searchRegion) {
