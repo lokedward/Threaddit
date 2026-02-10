@@ -556,83 +556,10 @@ struct ProductData {
     let tags: [String]
 }
 
-// MARK: - Generic Parser (Fallback)
+// MARK: - Clothing Detection Helper
 
-class GenericEmailParser: EmailParser {
-    func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
-        guard let html = email.htmlBody else { return [] }
-        
-        var products: [ProductData] = []
-        
-        // Strategy: Find all images with product-like alt text and nearby text for names
-        let imagePattern = #"<img[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']+)["'][^>]*>"#
-        let regex = try NSRegularExpression(pattern: imagePattern, options: .caseInsensitive)
-        let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
-        
-        for match in matches {
-            if match.numberOfRanges >= 3,
-               let imageURLRange = Range(match.range(at: 1), in: html),
-               let altTextRange = Range(match.range(at: 2), in: html) {
-                
-                let imageURLString = String(html[imageURLRange])
-                let altText = String(html[altTextRange])
-                
-                // Filter out common non-product images
-                guard !altText.lowercased().contains("logo"),
-                      !altText.lowercased().contains("banner"),
-                      !altText.lowercased().contains("icon"),
-                      !imageURLString.contains("spacer"),
-                      let imageURL = URL(string: imageURLString) else {
-                    continue
-                }
-                
-                // Use alt text as product name (clean it up)
-                let productName = cleanProductName(altText)
-                
-                guard !productName.isEmpty else { continue }
-                
-                // ✨ NEW: Filter to clothing items only
-                guard isClothingItem(productName) else {
-                    continue
-                }
-                
-                products.append(ProductData(
-                    name: productName,
-                    imageURL: imageURL,
-                    brand: nil,
-                    size: nil,
-                    color: nil,
-                    category: nil,
-                    tags: []
-                ))
-            }
-        }
-        
-        return products
-    }
-    
-    func cleanProductName(_ name: String) -> String {
-        // Remove HTML entities and clean up
-        var cleaned = name
-            .replacingOccurrences(of: "&nbsp;", with: " ")
-            .replacingOccurrences(of: "&amp;", with: "&")
-            .replacingOccurrences(of: "&quot;", with: "\"")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        // Remove common noise words
-        let noiseWords = ["image", "product", "item"]
-        for noise in noiseWords {
-            if cleaned.lowercased() == noise {
-                return ""
-            }
-        }
-        
-        return cleaned
-    }
-    
-    // MARK: - Clothing Detection
-    
-    private let clothingKeywords: Set<String> = [
+class ClothingDetector {
+    static let clothingKeywords: Set<String> = [
         // Tops
         "shirt", "t-shirt", "tshirt", "tee", "polo", "blouse", "top", "tank", "camisole", "halter",
         "sweater", "pullover", "tunic", "henley", "jersey", "cardigan", "vest", "waistcoat",
@@ -681,7 +608,7 @@ class GenericEmailParser: EmailParser {
         "silk", "velvet", "linen", "chambray", "corduroy"
     ]
     
-    private let clothingBrands: Set<String> = [
+    static let clothingBrands: Set<String> = [
         // Athletic
         "nike", "adidas", "puma", "under armour", "reebok", "new balance",
         "asics", "saucony", "brooks", "hoka", "on running",
@@ -713,7 +640,7 @@ class GenericEmailParser: EmailParser {
         "allbirds", "everlane", "reformation", "madewell", "j.crew"
     ]
     
-    private let blacklistPatterns: Set<String> = [
+    static let blacklistPatterns: Set<String> = [
         // Items that contain clothing keywords but aren't clothing
         "pillow case", "pillowcase", "phone case", "laptop case",
         "shirt hanger", "dress form", "shoe rack", "hat box",
@@ -721,7 +648,7 @@ class GenericEmailParser: EmailParser {
         "clothing rack", "garment bag", "shoe cleaner", "fabric softener"
     ]
     
-    func isClothingItem(_ productName: String) -> Bool {
+    static func isClothingItem(_ productName: String) -> Bool {
         let lowercased = productName.lowercased()
         
         // Check blacklist first (avoid false positives)
@@ -746,6 +673,81 @@ class GenericEmailParser: EmailParser {
         }
         
         return false
+    }
+}
+
+// MARK: - Generic Parser (Fallback)
+
+class GenericEmailParser: EmailParser {
+    func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
+        guard let html = email.htmlBody else { return [] }
+        
+        var products: [ProductData] = []
+        
+        // Strategy: Find all images with product-like alt text and nearby text for names
+        let imagePattern = #"<img[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']+)["'][^>]*>"#
+        let regex = try NSRegularExpression(pattern: imagePattern, options: .caseInsensitive)
+        let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        
+        for match in matches {
+            if match.numberOfRanges >= 3,
+               let imageURLRange = Range(match.range(at: 1), in: html),
+               let altTextRange = Range(match.range(at: 2), in: html) {
+                
+                let imageURLString = String(html[imageURLRange])
+                let altText = String(html[altTextRange])
+                
+                // Filter out common non-product images
+                guard !altText.lowercased().contains("logo"),
+                      !altText.lowercased().contains("banner"),
+                      !altText.lowercased().contains("icon"),
+                      !imageURLString.contains("spacer"),
+                      let imageURL = URL(string: imageURLString) else {
+                    continue
+                }
+                
+                // Use alt text as product name (clean it up)
+                let productName = cleanProductName(altText)
+                
+                guard !productName.isEmpty else { continue }
+                
+                // ✨ Filter to clothing items only
+                guard ClothingDetector.isClothingItem(productName) else {
+                    continue
+                }
+                
+                products.append(ProductData(
+                    name: productName,
+                    imageURL: imageURL,
+                    brand: nil,
+                    size: nil,
+                    color: nil,
+                    category: nil,
+                    tags: []
+                ))
+            }
+        }
+        
+        return products
+    }
+    
+    func cleanProductName(_ name: String) -> String {
+        // Remove HTML entities and clean up
+        var cleaned = name
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Remove common noise words
+        let noiseWords = ["image", "product", "item"]
+        for noise in noiseWords {
+            if cleaned.lowercased() == noise {
+                return ""
+            }
+        }
+        
+        return cleaned
     }
 }
 
@@ -826,7 +828,7 @@ class NikeEmailParser: EmailParser {
                     let productName = extractNearbyText(from: html, around: match.range, pattern: #"<td[^>]*>([^<]+)</td>"#) ?? "Nike Product"
                     
                     // Filter to clothing items only
-                    guard genericParser.isClothingItem(productName) else { continue }
+                    guard ClothingDetector.isClothingItem(productName) else { continue }
                     
                     products.append(ProductData(
                         name: productName,
