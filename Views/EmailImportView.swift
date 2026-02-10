@@ -207,35 +207,53 @@ struct EmailImportView: View {
     // MARK: - Review Screen (Transition)
     
     private var reviewScreen: some View {
-        VStack(spacing: 32) {
-            Spacer()
-            
-            // Success Icon
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
-                .foregroundColor(.green)
-                .symbolEffect(.bounce, value: showingReviewScreen)
-            
+        VStack(spacing: 20) {
+            // Header
             VStack(spacing: 12) {
-                Text("Scan Complete!")
-                    .font(PoshTheme.Typography.headline(size: 28))
-                    .foregroundColor(PoshTheme.Colors.headline)
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 50))
+                    .foregroundColor(.green)
+                    .padding(.top, 20)
                 
-                Text("We found \(importedItems.count) potential items from your emails.")
-                    .font(.system(size: 16))
-                    .foregroundColor(PoshTheme.Colors.body)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                Text("Found \(importedItems.count) items")
+                    .font(PoshTheme.Typography.headline(size: 24))
+                    .foregroundColor(PoshTheme.Colors.headline)
             }
+            .padding(.bottom, 10)
             
-            Spacer()
+            // Debug List - Names Only
+            List(0..<importedItems.count, id: \.self) { index in
+                let item = importedItems[index]
+                HStack(alignment: .top, spacing: 12) {
+                    Text("\(index + 1).")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        .frame(width: 24, alignment: .trailing)
+                    
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(item.name)
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(PoshTheme.Colors.headline)
+                        
+                        if let brand = item.brand {
+                            Text(brand)
+                                .font(.system(size: 12))
+                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        }
+                    }
+                }
+                .listRowSeparator(.hidden)
+                .padding(.vertical, 8)
+            }
+            .listStyle(.plain)
+            .background(PoshTheme.Colors.background)
             
             // Actions
             VStack(spacing: 16) {
                 Button {
                     showingBulkAddFlow = true
                 } label: {
-                    Text("Review Items to Add")
+                    Text("Review & Add All")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
@@ -251,7 +269,7 @@ struct EmailImportView: View {
                 .foregroundColor(PoshTheme.Colors.body)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 32)
+            .padding(.bottom, 20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PoshTheme.Colors.background)
