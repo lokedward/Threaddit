@@ -14,6 +14,7 @@ struct SettingsView: View {
     @State private var showingClearConfirmation = false
     @State private var showingExportSheet = false
     @State private var exportURL: URL?
+    @State private var showingEmailImport = false
     
     @Query private var allItems: [ClothingItem]
     @Query private var allCategories: [Category]
@@ -37,6 +38,25 @@ struct SettingsView: View {
                             } label: {
                                 HStack {
                                     Label("MANAGE CATEGORIES", systemImage: "folder")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .tracking(1)
+                                    Spacer()
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                }
+                                .padding()
+                                .background(PoshTheme.Colors.cardBackground)
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
+                            
+                            // Email Import Test Button
+                            Button {
+                                showingEmailImport = true
+                            } label: {
+                                HStack {
+                                    Label("IMPORT FROM GMAIL (TEST)", systemImage: "envelope.fill")
                                         .font(.system(size: 13, weight: .semibold))
                                         .tracking(1)
                                     Spacer()
@@ -172,6 +192,9 @@ struct SettingsView: View {
                 if let url = exportURL {
                     ShareSheet(activityItems: [url])
                 }
+            }
+            .sheet(isPresented: $showingEmailImport) {
+                EmailImportView(userTier: .free) // TODO: Use actual user tier
             }
         }
         .preferredColorScheme(appearanceMode.colorScheme)

@@ -3,6 +3,7 @@
 
 import SwiftUI
 import SwiftData
+import GoogleSignIn
 
 @main
 struct ThreadListApp: App {
@@ -39,6 +40,9 @@ struct ThreadListApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onOpenURL { url in
+                    GIDSignIn.sharedInstance.handle(url)
+                }
         }
         .modelContainer(sharedModelContainer)
     }
