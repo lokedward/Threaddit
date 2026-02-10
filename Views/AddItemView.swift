@@ -309,6 +309,7 @@ struct ImageSectionView: View, Equatable {
             if let uiImage = image {
                 Image(uiImage: uiImage).resizable().aspectRatio(contentMode: .fill)
                     .frame(maxWidth: .infinity).frame(height: 300)
+                    .clipped()
                     .clipShape(RoundedRectangle(cornerRadius: 16)).poshCard()
                 
                 if showChangeButton {

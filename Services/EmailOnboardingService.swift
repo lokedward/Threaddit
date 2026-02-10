@@ -689,6 +689,24 @@ class ClothingDetector {
         
         return false
     }
+    
+    static func isLikelyProductImage(url: String, alt: String?) -> Bool {
+        let lowerUrl = url.lowercased()
+        let lowerAlt = alt?.lowercased() ?? ""
+        
+        // 1. Check URL for non-product keywords
+        let urlBlocklist = ["logo", "icon", "social", "footer", "header", "nav", "tracking", "pixel", "button", "arrow", "star", "rating", "spacer"]
+        if urlBlocklist.contains(where: { lowerUrl.contains($0) }) { return false }
+        
+        // 2. Check File Extensions
+        if lowerUrl.hasSuffix(".gif") || lowerUrl.hasSuffix(".svg") { return false }
+        
+        // 3. Check Alt Text for social/ui keywords
+        let altBlocklist = ["logo", "icon", "facebook", "twitter", "instagram", "pinterest", "youtube", "tiktok", "linkedin", "home", "menu", "search", "cart", "account", "profile", "banner"]
+        if altBlocklist.contains(where: { lowerAlt.contains($0) }) { return false }
+        
+        return true
+    }
 }
 
 // MARK: - Generic Parser (Fallback)
@@ -713,10 +731,7 @@ class GenericEmailParser: EmailParser {
                 let altText = String(html[altTextRange])
                 
                 // Filter out common non-product images
-                guard !altText.lowercased().contains("logo"),
-                      !altText.lowercased().contains("banner"),
-                      !altText.lowercased().contains("icon"),
-                      !imageURLString.contains("spacer"),
+                guard ClothingDetector.isLikelyProductImage(url: imageURLString, alt: altText),
                       let imageURL = URL(string: imageURLString) else {
                     continue
                 }
@@ -789,7 +804,9 @@ class AmazonEmailParser: EmailParser {
                     let imageURLString = String(html[imageURLRange])
                     let productName = String(html[nameRange]).trimmingCharacters(in: .whitespacesAndNewlines)
                     
-                    if let imageURL = URL(string: imageURLString), !productName.isEmpty {
+                    if let imageURL = URL(string: imageURLString),
+                       !productName.isEmpty,
+                       ClothingDetector.isLikelyProductImage(url: imageURLString, alt: productName) {
                         // Filter to clothing items only
                         guard ClothingDetector.isClothingItem(productName) else { continue }
                         
@@ -837,10 +854,11 @@ class NikeEmailParser: EmailParser {
                     
                     let imageURLString = String(html[imageURLRange])
                     
-                    guard let imageURL = URL(string: imageURLString) else { continue }
-                    
-                    // Extract product name from surrounding context
+                    // Extract product name from surrounding context (used for alt text in isLikelyProductImage)
                     let productName = extractNearbyText(from: html, around: match.range, pattern: #"<td[^>]*>([^<]+)</td>"#) ?? "Nike Product"
+
+                    guard ClothingDetector.isLikelyProductImage(url: imageURLString, alt: productName),
+                          let imageURL = URL(string: imageURLString) else { continue }
                     
                     // Filter to clothing items only
                     guard ClothingDetector.isClothingItem(productName) else { continue }
@@ -902,7 +920,9 @@ class ZaraEmailParser: EmailParser {
                     let imageURLString = String(html[imageURLRange])
                     let productName = String(html[altTextRange]).trimmingCharacters(in: .whitespacesAndNewlines)
                     
-                    if let imageURL = URL(string: imageURLString), !productName.isEmpty {
+                    if let imageURL = URL(string: imageURLString),
+                       !productName.isEmpty,
+                       ClothingDetector.isLikelyProductImage(url: imageURLString, alt: productName) {
                         // Filter to clothing items only
                         guard ClothingDetector.isClothingItem(productName) else { continue }
                         
