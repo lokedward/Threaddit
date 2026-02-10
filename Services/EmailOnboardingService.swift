@@ -750,24 +750,34 @@ class ClothingDetector {
     
     static func isLikelyProductImage(url: String, alt: String?, width: Int? = nil, height: Int? = nil) -> Bool {
         let lowerUrl = url.lowercased()
-        let lowerAlt = alt?.lowercased() ?? ""
         
-        // 1. Check URL for non-product keywords
+        // 1. Keyword Blocklist
         let urlBlocklist = ["logo", "icon", "social", "footer", "header", "nav", "tracking", "pixel", "button", "arrow", "star", "rating", "spacer"]
         if urlBlocklist.contains(where: { lowerUrl.contains($0) }) { return false }
         
-        // 2. Check File Extensions
-        if lowerUrl.hasSuffix(".gif") || lowerUrl.hasSuffix(".svg") { return false }
-        
-        // 3. Check Alt Text for social/ui keywords
-        let altBlocklist = ["logo", "icon", "facebook", "twitter", "instagram", "pinterest", "youtube", "tiktok", "linkedin", "home", "menu", "search", "cart", "account", "profile", "banner"]
-        if altBlocklist.contains(where: { lowerAlt.contains($0) }) { return false }
-        
-        // 4. Check Dimensions (if available)
-        if let w = width, let h = height {
-            if w < 150 || h < 150 { return false } // Too small (Icon killer)
-            let ratio = Double(w) / Double(h)
-            if ratio > 1.3 || ratio < 0.33 { return false } // Too wide (Banner killer) or too tall
+        // 2. NEW: Brand Identity Check
+        // If alt text is EXACTLY a brand name, it's a logo, not a product.
+        if let altText = alt, clothingBrands.contains(altText.lowercased().trimmingCharacters(in: .whitespaces)) {
+            return false
+        }
+
+        // 3. Strict Dimension Logic
+        if let w = width {
+            // A. Tiny Image Check
+            if w < 150 { return false }
+            
+            // B. Aspect Ratio Check (Only if height exists)
+            if let h = height, h > 0 {
+                if h < 150 { return false }
+                
+                let ratio = Double(w) / Double(h)
+                // Reject wide banners (> 1.3) and tall skinny spacers (< 0.33)
+                if ratio > 1.3 || ratio < 0.33 { return false }
+            } else {
+                // C. Missing Height Fallback
+                // If we have width but NO height, and width is "Banner Size" (> 350), assume banner.
+                if w > 350 { return false }
+            }
         }
         
         return true
@@ -784,11 +794,37 @@ class GenericEmailParser: EmailParser {
     func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
         guard let rawHtml = email.htmlBody else { return [] }
         
-        // Remove promotional/recommended sections to avoid false positives
-        var html = removePromotionalContent(rawHtml)
+        // 1. Pre-process: Handle Forwarded Email Headers
+        var processingHtml = rawHtml
+        if let forwardRange = processingHtml.range(of: "Begin forwarded message") ?? processingHtml.range(of: "Forwarded message") {
+            processingHtml = String(processingHtml[forwardRange.upperBound...])
+        }
+
+        // 2. The "Gold Zone" Crop
+        let startMarkers = ["Order Summary", "Order #", "Order Number", "Item Details", "Shipment Details", "Your Order"]
+        let endMarkers = ["Subtotal", "Order Total", "Total Payment", "Tax", "Shipping"]
         
-        // GOLD ZONE CROPPING: Focus on transactional area
-        html = cropToTransactionalArea(html)
+        var startIndex = processingHtml.startIndex
+        var endIndex = processingHtml.endIndex
+        
+        // Find best start marker
+        for marker in startMarkers {
+            if let range = processingHtml.range(of: marker, options: .caseInsensitive) {
+                // Back up 500 chars to catch the image above the text
+                startIndex = processingHtml.index(range.lowerBound, offsetBy: -500, limitedBy: processingHtml.startIndex) ?? processingHtml.startIndex
+                break
+            }
+        }
+        
+        // Find best end marker (last occurrence)
+        for marker in endMarkers {
+            if let range = processingHtml.range(of: marker, options: [.caseInsensitive, .backwards]) {
+                endIndex = range.upperBound
+                break
+            }
+        }
+        
+        let html = String(processingHtml[startIndex..<endIndex])
         
         var candidates: [ProductData] = []
         
