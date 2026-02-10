@@ -1014,11 +1014,13 @@ class AmazonEmailParser: EmailParser {
                         products.append(ProductData(
                             name: productName,
                             imageURL: imageURL,
+                            price: nil,
                             brand: "Amazon",
                             size: nil,
                             color: nil,
                             category: nil,
-                            tags: ["amazon"]
+                            tags: ["amazon"],
+                            score: 90 // High confidence for known parser
                         ))
                     }
                 }
@@ -1074,11 +1076,13 @@ class NikeEmailParser: EmailParser {
                     products.append(ProductData(
                         name: productName,
                         imageURL: imageURL,
+                        price: nil,
                         brand: "Nike",
                         size: nil,
                         color: nil,
                         category: nil,
-                        tags: ["nike"]
+                        tags: ["nike"],
+                        score: 90 // High confidence
                     ))
                 }
             }
@@ -1144,11 +1148,13 @@ class ZaraEmailParser: EmailParser {
                         products.append(ProductData(
                             name: productName,
                             imageURL: imageURL,
+                            price: nil,
                             brand: "Zara",
                             size: nil,
                             color: nil,
                             category: nil,
-                            tags: ["zara"]
+                            tags: ["zara"],
+                            score: 90 // High confidence
                         ))
                     }
                 }
