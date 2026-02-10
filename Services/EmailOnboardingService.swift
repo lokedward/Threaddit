@@ -755,28 +755,26 @@ class ClothingDetector {
         let urlBlocklist = ["logo", "icon", "social", "footer", "header", "nav", "tracking", "pixel", "button", "arrow", "star", "rating", "spacer"]
         if urlBlocklist.contains(where: { lowerUrl.contains($0) }) { return false }
         
-        // 2. NEW: Brand Identity Check
-        // If alt text is EXACTLY a brand name, it's a logo, not a product.
-        if let altText = alt, clothingBrands.contains(altText.lowercased().trimmingCharacters(in: .whitespaces)) {
-            return false
+        // 2. Brand Identity Check (The Logo Killer)
+        // If alt text is EXACTLY a brand name (e.g. "Madewell"), it is the logo.
+        if let altText = alt {
+            let cleanAlt = altText.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if clothingBrands.contains(cleanAlt) { return false }
         }
 
-        // 3. Strict Dimension Logic
+        // 3. Dimension Logic (Safe Mode)
         if let w = width {
-            // A. Tiny Image Check
-            if w < 150 { return false }
+            // Allow small thumbnails (e.g. 112px)
+            if w < 90 { return false }
             
-            // B. Aspect Ratio Check (Only if height exists)
             if let h = height, h > 0 {
-                if h < 150 { return false }
-                
+                if h < 90 { return false }
                 let ratio = Double(w) / Double(h)
-                // Reject wide banners (> 1.3) and tall skinny spacers (< 0.33)
-                if ratio > 1.3 || ratio < 0.33 { return false }
+                // Reject extremely wide (banners) or tall (spacers)
+                if ratio > 2.5 || ratio < 0.33 { return false }
             } else {
-                // C. Missing Height Fallback
-                // If we have width but NO height, and width is "Banner Size" (> 350), assume banner.
-                if w > 350 { return false }
+                // Missing height? Only reject if it's clearly a massive banner
+                if w > 600 { return false }
             }
         }
         
@@ -794,29 +792,37 @@ class GenericEmailParser: EmailParser {
     func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
         guard let rawHtml = email.htmlBody else { return [] }
         
-        // 1. Pre-process: Handle Forwarded Email Headers
+        // 1. Strip Forwarded Headers (Robust)
         var processingHtml = rawHtml
-        if let forwardRange = processingHtml.range(of: "Begin forwarded message") ?? processingHtml.range(of: "Forwarded message") {
-            processingHtml = String(processingHtml[forwardRange.upperBound...])
+        // Match standard Gmail/Outlook forward markers
+        let forwardMarkers = ["Begin forwarded message", "Forwarded message", "---------- Original Message ----------"]
+        for marker in forwardMarkers {
+            if let range = processingHtml.range(of: marker, options: .caseInsensitive) {
+                processingHtml = String(processingHtml[range.upperBound...])
+                break
+            }
         }
 
-        // 2. The "Gold Zone" Crop
-        let startMarkers = ["Order Summary", "Order #", "Order Number", "Item Details", "Shipment Details", "Your Order"]
+        // 2. The "Gold Zone" Crop (Safe Buffer)
+        // Locate the "Order" section to avoid picking up the top-level logo
+        let startMarkers = ["Order Summary", "Order #", "Order Number", "Your Order", "Item Details"]
         let endMarkers = ["Subtotal", "Order Total", "Total Payment", "Tax", "Shipping"]
         
         var startIndex = processingHtml.startIndex
         var endIndex = processingHtml.endIndex
         
-        // Find best start marker
+        // Find Start (Earliest occurrence)
         for marker in startMarkers {
             if let range = processingHtml.range(of: marker, options: .caseInsensitive) {
-                // Back up 500 chars to catch the image above the text
-                startIndex = processingHtml.index(range.lowerBound, offsetBy: -500, limitedBy: processingHtml.startIndex) ?? processingHtml.startIndex
-                break
+                // Found a marker? Back up 1500 chars to catch any images slightly above the text
+                if range.lowerBound < startIndex || startIndex == processingHtml.startIndex {
+                    startIndex = processingHtml.index(range.lowerBound, offsetBy: -1500, limitedBy: processingHtml.startIndex) ?? processingHtml.startIndex
+                    break
+                }
             }
         }
         
-        // Find best end marker (last occurrence)
+        // Find End (Last occurrence)
         for marker in endMarkers {
             if let range = processingHtml.range(of: marker, options: [.caseInsensitive, .backwards]) {
                 endIndex = range.upperBound
