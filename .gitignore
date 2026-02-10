@@ -6,6 +6,7 @@ DerivedData/
 *.ipa
 *.dSYM.zip
 *.dSYM
+GoogleService-Info.plist
 
 # Build
 build/
