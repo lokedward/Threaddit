@@ -266,25 +266,24 @@ class StylistService {
     }
     
     private func callImagenAPI(prompt: String) async throws -> Data {
-        // Construct the request URL
-        guard let url = URL(string: AppConfig.imagenEndpoint) else {
+        // Build URL with API key as query parameter
+        guard var urlComponents = URLComponents(string: AppConfig.imagenEndpoint) else {
+            throw StylistError.invalidEndpoint
+        }
+        urlComponents.queryItems = [URLQueryItem(name: "key", value: AppConfig.googleAPIKey)]
+        
+        guard let url = urlComponents.url else {
             throw StylistError.invalidEndpoint
         }
         
         // Build request body
         let requestBody: [String: Any] = [
-            "instances": [
-                [
-                    "prompt": prompt
-                ]
-            ],
-            "parameters": [
-                "sampleCount": 1,
-                "aspectRatio": "3:4",
-                "outputImageWidth": 1024,
-                "negativePrompt": "blurry, distorted, low quality, cartoon, illustration",
-                "personGeneration": "allow_adult"
-            ]
+            "prompt": prompt,
+            "number_of_images": 1,
+            "aspect_ratio": "3:4",
+            "safety_filter_level": "block_only_high",
+            "person_generation": "allow_adult",
+            "negative_prompt": "blurry, distorted, low quality, cartoon, illustration, deformed body, extra limbs, malformed hands"
         ]
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
@@ -295,24 +294,27 @@ class StylistService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(AppConfig.googleAPIKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = jsonData
         
         // Execute request
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw StylistError.apiError(String(data: data, encoding: .utf8) ?? "Unknown error")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw StylistError.apiError("Invalid response")
+        }
+        
+        guard (200...299).contains(httpResponse.statusCode) else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw StylistError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
         }
         
         // Parse response
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let predictions = json["predictions"] as? [[String: Any]],
-              let firstPrediction = predictions.first,
-              let bytesBase64Encoded = firstPrediction["bytesBase64Encoded"] as? String,
-              let imageData = Data(base64Encoded: bytesBase64Encoded) else {
-            throw StylistError.invalidResponse
+              let images = json["images"] as? [[String: Any]],
+              let firstImage = images.first,
+              let base64Image = firstImage["image"] as? String,
+              let imageData = Data(base64Encoded: base64Image) else {
+            throw StylistError.invalidImageData
         }
         
         return imageData
