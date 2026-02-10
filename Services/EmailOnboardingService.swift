@@ -361,11 +361,13 @@ class EmailOnboardingService: ObservableObject {
         // Stricter keywords to avoid marketing emails that mention "order" or "total"
         let keywords = [
             "order #", "order number", "order id", 
+            "order #", "order number", "order id", 
             "receipt #", "invoice #", 
             "order total", "grand total", "payment method",
             "tracking number", "track your package", "track my package",
             "your order has shipped", "shipment confirmation", 
-            "thank you for your purchase", "thanks for your order"
+            "thank you for your purchase", "thanks for your order",
+            "order details", "order summary", "purchase details", "transaction details"
         ]
         return keywords.contains(where: { lower.contains($0) })
     }
@@ -665,6 +667,8 @@ class ClothingDetector {
         // Athletic
         "nike", "adidas", "puma", "under armour", "reebok", "new balance",
         "asics", "saucony", "brooks", "hoka", "on running",
+        "lululemon", "alo", "alo yoga", "vuori", "gymshark", "fabletics", "athleta",
+        "rhone", "publish", "outdoor voices",
         
         // Fast Fashion
         "zara", "h&m", "hm", "uniqlo", "gap", "old navy", "forever 21",
@@ -704,7 +708,8 @@ class ClothingDetector {
         "terms", "returns", "exchange", "gift card", "store locator",
         "free delivery", "percent off", "% off", "sale", "clearance", "limited time",
         "barcode", "qr code", "apple wallet", "apple pay", "google pay", "add to wallet", "wallet",
-        "download app", "get the app", "app store", "play store", "social", "follow us"
+        "download app", "get the app", "app store", "play store", "social", "follow us",
+        "esrb", "rated teen", "rated mature", "rated everyone", "pegi", "rating"
     ]
     
     static func isBlacklisted(_ name: String) -> Bool {
