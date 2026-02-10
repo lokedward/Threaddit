@@ -56,19 +56,19 @@ struct EmailImportView: View {
             
             // Description
             VStack(spacing: 12) {
-                FeatureRow(
+                EmailFeatureRow(
                     icon: "magnifyingglass",
                     text: "We'll search for order confirmations"
                 )
-                FeatureRow(
+                EmailFeatureRow(
                     icon: "photo.fill",
                     text: "Extract product images automatically"
                 )
-                FeatureRow(
+                EmailFeatureRow(
                     icon: "lock.shield.fill",
                     text: "Processed securely on your device"
                 )
-                FeatureRow(
+                EmailFeatureRow(
                     icon: "clock.fill",
                     text: "Access expires in 1 hour"
                 )
@@ -252,7 +252,7 @@ struct EmailImportView: View {
 
 // MARK: - Supporting Views
 
-struct FeatureRow: View {
+struct EmailFeatureRow: View {
     let icon: String
     let text: String
     
