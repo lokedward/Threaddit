@@ -765,9 +765,9 @@ class ClothingDetector {
         
         // 4. Check Dimensions (if available)
         if let w = width, let h = height {
-            if w < 100 || h < 100 { return false } // Too small
+            if w < 150 || h < 150 { return false } // Too small (Icon killer)
             let ratio = Double(w) / Double(h)
-            if ratio > 2.0 || ratio < 0.4 { return false } // Too wide (banner/logo) or too tall
+            if ratio > 1.3 || ratio < 0.33 { return false } // Too wide (Banner killer) or too tall
         }
         
         return true
@@ -785,7 +785,10 @@ class GenericEmailParser: EmailParser {
         guard let rawHtml = email.htmlBody else { return [] }
         
         // Remove promotional/recommended sections to avoid false positives
-        let html = removePromotionalContent(rawHtml)
+        var html = removePromotionalContent(rawHtml)
+        
+        // GOLD ZONE CROPPING: Focus on transactional area
+        html = cropToTransactionalArea(html)
         
         var candidates: [ProductData] = []
         
@@ -889,6 +892,49 @@ class GenericEmailParser: EmailParser {
         // Sort descending by score
         return candidates.sorted { $0.score > $1.score }
     }
+    
+    // MARK: - Gold Zone Cropping
+    
+    private func cropToTransactionalArea(_ html: String) -> String {
+        let lower = html.lowercased()
+        
+        // Markers to identify the start of the receipt/order list
+        let startMarkers = ["order", "item", "description", "details"]
+        
+        // Markers to identify the end of the receipt (totals area)
+        let endMarkers = ["subtotal", "total", "tax", "shipping"]
+        
+        var startIdx: String.Index?
+        for marker in startMarkers {
+            if let range = lower.range(of: marker) {
+                if startIdx == nil || range.lowerBound < startIdx! {
+                    startIdx = range.lowerBound
+                }
+            }
+        }
+        
+        var endIdx: String.Index?
+        for marker in endMarkers {
+            if let range = lower.range(of: marker, options: .backwards) {
+                if endIdx == nil || range.upperBound > endIdx! {
+                    endIdx = range.upperBound
+                }
+            }
+        }
+        
+        // If both found and valid order, crop
+        if let start = startIdx, let end = endIdx, start < end {
+            // Apply crop
+            // We include the markers themselves as they form the boundary
+            let safeStart = html.index(start, offsetBy: -50, limitedBy: html.startIndex) ?? html.startIndex
+            let safeEnd = html.index(end, offsetBy: 50, limitedBy: html.endIndex) ?? html.endIndex
+            
+            return String(html[safeStart..<safeEnd])
+        }
+        
+        return html
+    }
+    
     
     // Helper to extract specific price string (heuristic)
     private func extractPrice(from text: String) -> String? {
