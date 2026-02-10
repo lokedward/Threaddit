@@ -1,5 +1,6 @@
 // PoshTheme.swift
 // Design tokens and styling rules for the high-end boutique aesthetic
+// Light mode only - elegant champagne/gold color scheme
 
 import SwiftUI
 
@@ -8,18 +9,12 @@ struct PoshTheme {
     
     struct Colors {
         // Backgrounds
-        static let background = Color(light: Color(red: 0.98, green: 0.977, blue: 0.965), 
-                                     dark: Color(red: 0.07, green: 0.07, blue: 0.07))
+        static let background = Color(red: 0.98, green: 0.977, blue: 0.965)
+        static let cardBackground = Color.white
         
-        static let cardBackground = Color(light: .white, 
-                                         dark: Color(red: 0.12, green: 0.12, blue: 0.12))
-        
-        // Accents - Primary (Champagne in Light, Bronze in Dark)
-        static let primaryAccentStart = Color(light: Color(red: 0.83, green: 0.68, blue: 0.21), // Champagne
-                                            dark: Color(red: 0.80, green: 0.50, blue: 0.20)) // Bronze
-        
-        static let primaryAccentEnd = Color(light: Color(red: 0.91, green: 0.82, blue: 0.48), 
-                                          dark: Color(red: 0.55, green: 0.27, blue: 0.07))
+        // Accents - Primary (Champagne/Gold)
+        static let primaryAccentStart = Color(red: 0.83, green: 0.68, blue: 0.21) // Champagne
+        static let primaryAccentEnd = Color(red: 0.91, green: 0.82, blue: 0.48)
         
         static var primaryGradient: LinearGradient {
             LinearGradient(colors: [primaryAccentStart, primaryAccentEnd], 
@@ -28,23 +23,15 @@ struct PoshTheme {
         }
         
         // Secondary Accents
-        static let secondaryAccent = Color(light: Color(red: 0.85, green: 0.75, blue: 0.65), 
-                                         dark: Color(red: 0.45, green: 0.35, blue: 0.25))
+        static let secondaryAccent = Color(red: 0.85, green: 0.75, blue: 0.65)
         
         // Text
-        static let headline = Color(light: Color(red: 0.18, green: 0.14, blue: 0.12), 
-                                  dark: Color(red: 0.98, green: 0.977, blue: 0.965))
-        
-        static let body = Color(light: Color(red: 0.36, green: 0.33, blue: 0.31), 
-                              dark: Color(red: 0.85, green: 0.85, blue: 0.85))
+        static let headline = Color(red: 0.18, green: 0.14, blue: 0.12)
+        static let body = Color(red: 0.36, green: 0.33, blue: 0.31)
         
         // Shadows
         static var cardShadow: Color {
             Color.black.opacity(0.08)
-        }
-        
-        static var bronzeGlow: Color {
-            Color(red: 0.80, green: 0.50, blue: 0.20).opacity(0.3)
         }
     }
     
@@ -64,15 +51,13 @@ struct PoshTheme {
 // MARK: - View Modifiers
 
 struct PoshCardModifier: ViewModifier {
-    @Environment(\.colorScheme) var colorScheme
-    
     func body(content: Content) -> some View {
         content
             .background(PoshTheme.Colors.cardBackground)
             .cornerRadius(16)
             .shadow(
-                color: colorScheme == .light ? PoshTheme.Colors.cardShadow : PoshTheme.Colors.bronzeGlow,
-                radius: colorScheme == .light ? 10 : 15,
+                color: PoshTheme.Colors.cardShadow,
+                radius: 10,
                 x: 0,
                 y: 5
             )
@@ -113,20 +98,6 @@ extension View {
     func poshBody(size: CGFloat = 16, weight: Font.Weight = .regular) -> some View {
         self.font(PoshTheme.Typography.body(size: size, weight: weight))
             .foregroundColor(PoshTheme.Colors.body)
-    }
-}
-
-// Helper for Light/Dark color selection
-extension Color {
-    init(light: Color, dark: Color) {
-        self.init(uiColor: UIColor { traitCollection in
-            switch traitCollection.userInterfaceStyle {
-            case .dark:
-                return UIColor(dark)
-            default:
-                return UIColor(light)
-            }
-        })
     }
 }
 
