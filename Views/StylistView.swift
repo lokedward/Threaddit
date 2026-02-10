@@ -12,10 +12,6 @@ struct StylistView: View {
     @State private var showingSelection = true
     @State private var modelGender: Gender = .female
     
-    enum Gender {
-        case male, female
-    }
-    
     var body: some View {
         ZStack {
             PoshTheme.Colors.background.ignoresSafeArea()

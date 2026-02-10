@@ -9,6 +9,12 @@ struct CroppableImage: Identifiable {
     let image: UIImage
 }
 
+// MARK: - Stylist Types
+
+enum Gender {
+    case male, female
+}
+
 /// Common app constants for consistent styling/behavior
 struct AppConstants {
     struct Animation {

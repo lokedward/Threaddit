@@ -35,3 +35,6 @@ Pods/
 # Misc
 *.log
 *.tmp
+
+# API Keys & Secrets
+Config.swift

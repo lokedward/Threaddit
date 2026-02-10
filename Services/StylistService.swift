@@ -1,5 +1,5 @@
 // StylistService.swift
-// Logic for AI styling and item layering
+// AI styling and image generation with Google Imagen
 
 import Foundation
 import SwiftUI
@@ -8,6 +8,8 @@ class StylistService {
     static let shared = StylistService()
     
     private init() {}
+    
+    // MARK: - Layering Logic
     
     /// Determines the z-index/order for an item based on its category
     func layeringOrder(for item: ClothingItem) -> Int {
@@ -33,14 +35,149 @@ class StylistService {
         return 0
     }
     
-    /// Get styling advice from "Gemini Nanobanana"
+    // MARK: - AI Generation
+    
+    /// Generate a styled model photo with selected clothing items
+    func generateModelPhoto(items: [ClothingItem], gender: Gender) async throws -> UIImage {
+        guard !items.isEmpty else {
+            throw StylistError.noItemsSelected
+        }
+        
+        // Build the prompt
+        let prompt = buildPrompt(for: items, gender: gender)
+        
+        // Call Google Imagen API
+        let generatedImageData = try await callImagenAPI(prompt: prompt)
+        
+        guard let image = UIImage(data: generatedImageData) else {
+            throw StylistError.invalidImageData
+        }
+        
+        return image
+    }
+    
+    // MARK: - Private Helpers
+    
+    private func buildPrompt(for items: [ClothingItem], gender: Gender) -> String {
+        let genderTerm = gender == .female ? "female" : "male"
+        let modelDescription = "A professional fashion model photo of a \(genderTerm) model"
+        
+        // Sort items by layering order for natural description
+        let sortedItems = items.sorted { layeringOrder(for: $0) < layeringOrder(for: $1) }
+        
+        var clothingDescriptions: [String] = []
+        
+        for item in sortedItems {
+            var desc = ""
+            if let category = item.category?.name.lowercased() {
+                desc += "\(category)"
+            }
+            if !item.brand.isEmpty {
+                desc += " by \(item.brand)"
+            }
+            if !item.name.isEmpty {
+                desc += " (\(item.name))"
+            }
+            clothingDescriptions.append(desc)
+        }
+        
+        let clothingList = clothingDescriptions.joined(separator: ", ")
+        
+        // Final prompt
+        return """
+        \(modelDescription) wearing: \(clothingList). 
+        Full body shot, neutral background, professional studio lighting, 
+        high fashion editorial style, ultra realistic, 8k quality.
+        """
+    }
+    
+    private func callImagenAPI(prompt: String) async throws -> Data {
+        // Construct the request URL
+        guard let url = URL(string: AppConfig.imagenEndpoint) else {
+            throw StylistError.invalidEndpoint
+        }
+        
+        // Build request body
+        let requestBody: [String: Any] = [
+            "instances": [
+                [
+                    "prompt": prompt
+                ]
+            ],
+            "parameters": [
+                "sampleCount": 1,
+                "aspectRatio": "3:4",
+                "negativePrompt": "blurry, distorted, low quality, cartoon, illustration",
+                "personGeneration": "allow_adult"
+            ]
+        ]
+        
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw StylistError.invalidRequest
+        }
+        
+        // Create request
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(AppConfig.googleAPIKey)", forHTTPHeaderField: "Authorization")
+        request.httpBody = jsonData
+        
+        // Execute request
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200...299).contains(httpResponse.statusCode) else {
+            throw StylistError.apiError(String(data: data, encoding: .utf8) ?? "Unknown error")
+        }
+        
+        // Parse response
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let predictions = json["predictions"] as? [[String: Any]],
+              let firstPrediction = predictions.first,
+              let bytesBase64Encoded = firstPrediction["bytesBase64Encoded"] as? String,
+              let imageData = Data(base64Encoded: bytesBase64Encoded) else {
+            throw StylistError.invalidResponse
+        }
+        
+        return imageData
+    }
+    
+    /// Get styling advice (legacy method - can be removed or enhanced)
     func getVibeCheck(for items: [ClothingItem]) async -> String {
         guard !items.isEmpty else { return "Select some pieces to get started!" }
         
-        // Simulating Gemini's reasoning
         try? await Task.sleep(nanoseconds: 1_500_000_000)
         
         let names = items.map { $0.name }
         return "This combination of \(names.joined(separator: " and ")) looks incredibly chic! The palette is giving 'quiet luxury' vibes. Perfect for a gallery opening or a sophisticated brunch."
+    }
+}
+
+// MARK: - Supporting Types
+
+enum StylistError: LocalizedError {
+    case noItemsSelected
+    case invalidImageData
+    case invalidEndpoint
+    case invalidRequest
+    case invalidResponse
+    case apiError(String)
+    
+    var errorDescription: String? {
+        switch self {
+        case .noItemsSelected:
+            return "Please select at least one clothing item"
+        case .invalidImageData:
+            return "Could not process the generated image"
+        case .invalidEndpoint:
+            return "Invalid API endpoint configuration"
+        case .invalidRequest:
+            return "Failed to create API request"
+        case .invalidResponse:
+            return "Invalid response from AI service"
+        case .apiError(let message):
+            return "AI service error: \(message)"
+        }
     }
 }
