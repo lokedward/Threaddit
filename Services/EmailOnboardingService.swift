@@ -355,7 +355,6 @@ class EmailOnboardingService: ObservableObject {
         if lowercased.contains("nordstrom") { return "Nordstrom" }
         if lowercased.contains("macys") { return "Macy's" }
         if lowercased.contains("target") { return "Target" }
-        if lowercased.contains("lululemon") { return "Lululemon" }
         
         return "online store"
     }
@@ -386,8 +385,6 @@ class EmailOnboardingService: ObservableObject {
             return NikeEmailParser()
         } else if from.contains("zara") {
             return ZaraEmailParser()
-        } else if from.contains("lululemon") {
-            return LululemonEmailParser()
         } else {
             // Generic parser for unknown retailers
             return GenericEmailParser()
@@ -765,18 +762,19 @@ class ClothingDetector {
             if clothingBrands.contains(cleanAlt) { return false }
         }
 
-        // 3. Dimension Logic
+        // 3. Dimension Logic (Safe Mode)
         if let w = width {
-            // Lululemon thumbnails are 150px. 
-            // Tracking maps are often 300px+.
-            // Banner detection:
-            if w > 300 { return false } // Reject wide images (like the 360px map)
-            if w < 90 { return false }  // Keep min width safe (was 100, lowered to 90)
+            // Allow small thumbnails (e.g. 112px)
+            if w < 90 { return false }
             
             if let h = height, h > 0 {
-                // Check Aspect Ratio
+                if h < 90 { return false }
                 let ratio = Double(w) / Double(h)
-                if ratio > 2.0 || ratio < 0.4 { return false } // Allow slightly wider/taller, but reject banners
+                // Reject extremely wide (banners) or tall (spacers)
+                if ratio > 2.5 || ratio < 0.33 { return false }
+            } else {
+                // Missing height? Only reject if it's clearly a massive banner
+                if w > 600 { return false }
             }
         }
         
@@ -1251,88 +1249,6 @@ class ZaraEmailParser: EmailParser {
             }
         }
         
-        if products.isEmpty {
-            return try await GenericEmailParser().extractProducts(from: email)
-        }
-        
-        return products
-    }
-}
-
-// MARK: - Lululemon Parser
-
-class LululemonEmailParser: EmailParser {
-    func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
-        guard let html = email.htmlBody else { return [] }
-        var products: [ProductData] = []
-        
-        // Strategy: Lululemon images are consistently width="150"
-        // The name appears in an <a> tag shortly after the image
-        
-        // Regex to find image tag with width=150
-        let imgPattern = #"(<img[^>]+width=["']?150["']?[^>]*>)"#
-        if let regex = try? NSRegularExpression(pattern: imgPattern, options: .caseInsensitive) {
-            let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
-            
-            var seenURLs = Set<URL>()
-            
-            for match in matches {
-                guard let matchRange = Range(match.range(at: 1), in: html) else { continue }
-                let imgTag = String(html[matchRange])
-                
-                // 1. Extract URL
-                guard let srcRange = imgTag.range(of: #"src=["']([^"']+)["']"#, options: .regularExpression) else { continue }
-                let srcAttr = String(imgTag[srcRange])
-                
-                // Split by quote to get URL
-                let splits = srcAttr.split(whereSeparator: { $0 == "\"" || $0 == "'" })
-                guard splits.count > 1 else { continue }
-                let urlString = String(splits[1])
-                
-                guard let imageURL = URL(string: urlString) else { continue }
-                if seenURLs.contains(imageURL) { continue }
-                
-                // 2. Look Forward for Name (inside <a> tag)
-                // Scan next 1000 chars for the first anchor tag content
-                let searchRegionStart = matchRange.upperBound
-                let searchRegionEnd = html.index(searchRegionStart, offsetBy: 1000, limitedBy: html.endIndex) ?? html.endIndex
-                
-                if searchRegionStart < searchRegionEnd {
-                    let searchRegion = String(html[searchRegionStart..<searchRegionEnd])
-                    
-                    // Regex for Link Text: <a ...>(Name)</a>
-                    // We want to capture the content inside >...<
-                    if let nameRegex = try? NSRegularExpression(pattern: #"<a[^>]*>([^<]+)</a>"#, options: .caseInsensitive),
-                       let nameMatch = nameRegex.firstMatch(in: searchRegion, range: NSRange(searchRegion.startIndex..., in: searchRegion)),
-                       nameMatch.numberOfRanges >= 2,
-                       let nameRange = Range(nameMatch.range(at: 1), in: searchRegion) {
-                        
-                        let productName = String(searchRegion[nameRange]).trimmingCharacters(in: .whitespacesAndNewlines)
-                        
-                        // 3. Validation
-                        // Lululemon product names are usually clean.
-                        // We filter for clothing items.
-                        if !productName.isEmpty, ClothingDetector.isClothingItem(productName) {
-                            
-                            seenURLs.insert(imageURL)
-                            products.append(ProductData(
-                                name: productName,
-                                imageURL: imageURL,
-                                price: nil, // Price is further down, skipping for MVP
-                                brand: "Lululemon",
-                                size: nil,
-                                color: nil,
-                                category: nil,
-                                tags: ["lululemon"],
-                                score: 95 // High confidence
-                            ))
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Fallback
         if products.isEmpty {
             return try await GenericEmailParser().extractProducts(from: email)
         }
