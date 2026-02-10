@@ -330,6 +330,9 @@ class EmailOnboardingService: ObservableObject {
         }
         
         // Global Deduplication (across multiple emails)
+        // Sort by score descending first to prioritize high-confidence items
+        allProducts.sort { $0.score > $1.score }
+        
         var uniqueProducts: [ProductData] = []
         var seenGlobalURLs = Set<URL>()
         
@@ -597,14 +600,17 @@ protocol EmailParser {
     func extractProducts(from email: GmailMessage) async throws -> [ProductData]
 }
 
-struct ProductData {
+struct ProductData: Identifiable {
+    let id = UUID()
     let name: String
     let imageURL: URL
+    let price: String?
     let brand: String?
     let size: String?
     let color: String?
     let category: String?
     let tags: [String]
+    var score: Int = 0 
 }
 
 // MARK: - Clothing Detection Helper
@@ -709,7 +715,9 @@ class ClothingDetector {
         "free delivery", "percent off", "% off", "sale", "clearance", "limited time",
         "barcode", "qr code", "apple wallet", "apple pay", "google pay", "add to wallet", "wallet",
         "download app", "get the app", "app store", "play store", "social", "follow us",
-        "esrb", "rated teen", "rated mature", "rated everyone", "pegi", "rating"
+        "esrb", "rated teen", "rated mature", "rated everyone", "pegi", "rating",
+        "chick-fil-a", "chicken", "sandwich", "meal", "food", "beverage", "drink", "fries",
+        "series", "season", "episode", "watch now", "stream", "original series"
     ]
     
     static func isBlacklisted(_ name: String) -> Bool {
@@ -779,7 +787,7 @@ class GenericEmailParser: EmailParser {
         // Remove promotional/recommended sections to avoid false positives
         let html = removePromotionalContent(rawHtml)
         
-        var products: [ProductData] = []
+        var candidates: [ProductData] = []
         
         // Strategy: Find all images tags and parse attributes
         let imgTagPattern = #"<img\s+([^>]+)>"#
@@ -801,51 +809,94 @@ class GenericEmailParser: EmailParser {
                 let width = Int(extractAttribute("width", from: tagContent) ?? "0")
                 let height = Int(extractAttribute("height", from: tagContent) ?? "0")
                 
-                // Filter out non-product images
+                // Deduplicate by URL immediately
+                guard !seenURLs.contains(imageURL) else { continue }
+                
+                // 1. Structural Filter: Image Validation
+                // Must be likely product image (dimension check)
                 guard ClothingDetector.isLikelyProductImage(url: imageURLString, alt: altText, width: width == 0 ? nil : width, height: height == 0 ? nil : height) else {
                     continue
                 }
                 
-                // Use alt text as product name (clean it up)
+                // Clean Name
                 let productName = cleanProductName(altText)
-                
                 guard !productName.isEmpty else { continue }
                 
-                // Determine if valid product
-                // 1. Strict check (keywords/brands)
-                var isValid = ClothingDetector.isClothingItem(productName)
+                // 2. Score Calculation
+                var score = 0
                 
-                // 2. Context check (Price pattern) for unknown brands
-                if !isValid && !ClothingDetector.isBlacklisted(productName) {
-                    // Check nearby text for price
-                    let context = extractNearbyText(from: html, around: tagRange)
-                    if hasPricePattern(context) {
-                        isValid = true
-                    }
+                // Base structure requirement: Image + Price nearby
+                // Check context (+/- 500 chars) for price
+                let context = extractNearbyText(from: html, around: tagRange)
+                let hasPrice = hasPricePattern(context)
+                
+                // STRICT RULE: If unknown brand AND no clothing keyword, MUST have price
+                // Actually, user said "Price anchored block".
+                // We'll give points for price.
+                
+                if hasPrice {
+                    score += 10 // Baseline for valid structure
                 }
                 
-                // Apply Filter
-                guard isValid, !ClothingDetector.isBrandName(productName) else {
-                    continue
+                // Keyword matches
+                if ClothingDetector.isClothingItem(productName) {
+                    score += 50
+                } else if ClothingDetector.isBlacklisted(productName) {
+                    score -= 100
                 }
                 
-                // Deduplicate by URL
-                guard !seenURLs.contains(imageURL) else { continue }
-                seenURLs.insert(imageURL)
+                // Brand match
+                if ClothingDetector.isBrandName(productName) {
+                    score += 50
+                }
                 
-                products.append(ProductData(
-                    name: productName,
-                    imageURL: imageURL,
-                    brand: nil,
-                    size: nil,
-                    color: nil,
-                    category: nil,
-                    tags: []
-                ))
+                // Size/Qty clues in context (heuristic)
+                if context.localizedCaseInsensitiveContains("Qty") || context.localizedCaseInsensitiveContains("Quantity") {
+                    score += 20
+                }
+                
+                // Check context for negative signals
+                if context.localizedCaseInsensitiveContains("Shipping") || context.localizedCaseInsensitiveContains("Subtotal") {
+                    // Only penalize if very close? Or if it's the KEY content?
+                    // E.g. "Shipping $5.00" might look like a product.
+                    // If name is "Shipping", isBlacklisted handles it.
+                    // If context has "Shipping", it might be an item list header. Ignored.
+                }
+
+                // Filtering Decision
+                // We keep items if they are:
+                // A) High confidence (Keyword/Brand match) -> Score > 50
+                // B) Structural match (Price + Image) -> Score >= 10
+                // We DROP items if Score <= 0 (e.g. Image only, no price, no keywords)
+                
+                if score > 0 {
+                    seenURLs.insert(imageURL)
+                    candidates.append(ProductData(
+                        name: productName,
+                        imageURL: imageURL,
+                        price: extractPrice(from: context), // Extract actual string if possible
+                        brand: nil,
+                        size: nil,
+                        color: nil,
+                        category: nil,
+                        tags: [],
+                        score: score
+                    ))
+                }
             }
         }
         
-        return products
+        // Sort descending by score
+        return candidates.sorted { $0.score > $1.score }
+    }
+    
+    // Helper to extract specific price string (heuristic)
+    private func extractPrice(from text: String) -> String? {
+        let priceRegex = #"\$\d+([.,]\d{2})?"#
+        if let range = text.range(of: priceRegex, options: .regularExpression) {
+            return String(text[range])
+        }
+        return nil
     }
     
     private func extractAttribute(_ name: String, from text: String) -> String? {
