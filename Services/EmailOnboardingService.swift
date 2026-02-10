@@ -320,7 +320,18 @@ class EmailOnboardingService: ObservableObject {
             }
         }
         
-        return allProducts
+        // Global Deduplication (across multiple emails)
+        var uniqueProducts: [ProductData] = []
+        var seenGlobalURLs = Set<URL>()
+        
+        for product in allProducts {
+            if !seenGlobalURLs.contains(product.imageURL) {
+                seenGlobalURLs.insert(product.imageURL)
+                uniqueProducts.append(product)
+            }
+        }
+        
+        return uniqueProducts
     }
     
     private func detectRetailer(from email: String) -> String {
@@ -726,7 +737,10 @@ class ClothingDetector {
 
 class GenericEmailParser: EmailParser {
     func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
-        guard let html = email.htmlBody else { return [] }
+        guard let rawHtml = email.htmlBody else { return [] }
+        
+        // Remove promotional/recommended sections to avoid false positives
+        let html = removePromotionalContent(rawHtml)
         
         var products: [ProductData] = []
         
@@ -844,6 +858,32 @@ class GenericEmailParser: EmailParser {
         }
         
         return cleaned
+    }
+    
+    private func removePromotionalContent(_ html: String) -> String {
+        let stopPhrases = [
+            "you might also like", "recommended for you",
+            "customers also bought", "complete the look",
+            "related products", "top picks for you",
+            "frequently bought together"
+        ]
+        
+        let lowerHtml = html.lowercased()
+        var earliestIndex: String.Index? = nil
+        
+        for phrase in stopPhrases {
+            if let range = lowerHtml.range(of: phrase) {
+                if earliestIndex == nil || range.lowerBound < earliestIndex! {
+                    earliestIndex = range.lowerBound
+                }
+            }
+        }
+        
+        if let stopIndex = earliestIndex {
+             return String(html[..<stopIndex])
+        }
+        
+        return html
     }
 }
 
