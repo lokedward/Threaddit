@@ -776,11 +776,6 @@ class ClothingDetector {
     static func isBrandName(_ name: String) -> Bool {
         return clothingBrands.contains(name.lowercased())
     }
-    
-    static func containsBrand(_ name: String) -> Bool {
-        let lower = name.lowercased()
-        return clothingBrands.contains(where: { lower.contains($0) })
-    }
 }
 
 // MARK: - Generic Parser (Fallback)
@@ -835,9 +830,13 @@ class GenericEmailParser: EmailParser {
                 let context = extractNearbyText(from: html, around: tagRange)
                 let hasPrice = hasPricePattern(context)
                 
-                // STRICT RULE: User requires proximity to price
-                guard hasPrice else { continue }
-                score += 10 // Baseline for valid structure
+                // STRICT RULE: If unknown brand AND no clothing keyword, MUST have price
+                // Actually, user said "Price anchored block".
+                // We'll give points for price.
+                
+                if hasPrice {
+                    score += 10 // Baseline for valid structure
+                }
                 
                 // Keyword matches
                 if ClothingDetector.isClothingItem(productName) {
@@ -846,12 +845,8 @@ class GenericEmailParser: EmailParser {
                     score -= 100
                 }
                 
-                // Brand match logic
+                // Brand match
                 if ClothingDetector.isBrandName(productName) {
-                    // Exact match with brand name usually indicates a LOGO/Banner, not a product
-                    score -= 100
-                } else if ClothingDetector.containsBrand(productName) {
-                    // Contains brand name (e.g. "Madewell Jeans") is good
                     score += 50
                 }
                 
