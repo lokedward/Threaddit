@@ -776,7 +776,7 @@ class AmazonEmailParser: EmailParser {
                     
                     if let imageURL = URL(string: imageURLString), !productName.isEmpty {
                         // Filter to clothing items only
-                        guard genericParser.isClothingItem(productName) else { continue }
+                        guard ClothingDetector.isClothingItem(productName) else { continue }
                         
                         products.append(ProductData(
                             name: productName,
@@ -889,7 +889,7 @@ class ZaraEmailParser: EmailParser {
                     
                     if let imageURL = URL(string: imageURLString), !productName.isEmpty {
                         // Filter to clothing items only
-                        guard genericParser.isClothingItem(productName) else { continue }
+                        guard ClothingDetector.isClothingItem(productName) else { continue }
                         
                         products.append(ProductData(
                             name: productName,
