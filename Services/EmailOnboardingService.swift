@@ -660,33 +660,35 @@ class ClothingDetector {
         "pillow case", "pillowcase", "phone case", "laptop case",
         "shirt hanger", "dress form", "shoe rack", "hat box",
         "belt buckle", "tie clip", "watch band", "bag charm",
-        "clothing rack", "garment bag", "shoe cleaner", "fabric softener"
+        "clothing rack", "garment bag", "shoe cleaner", "fabric softener",
+        "shipping", "tax", "total", "subtotal", "discount", "receipt", "order"
     ]
+    
+    static func isBlacklisted(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        return blacklistPatterns.contains(where: { lower.contains($0) })
+    }
+    
+    static func hasClothingKeyword(_ name: String) -> Bool {
+        let lower = name.lowercased()
+        return clothingKeywords.contains(where: { lower.contains($0) })
+    }
     
     static func isClothingItem(_ productName: String) -> Bool {
         let lowercased = productName.lowercased()
         
-        // Check blacklist first (avoid false positives)
-        for pattern in blacklistPatterns {
-            if lowercased.contains(pattern) {
-                return false
-            }
-        }
+        // Check blacklist first
+        if isBlacklisted(productName) { return false }
         
-        // Check for clothing keywords
-        for keyword in clothingKeywords {
-            if lowercased.contains(keyword) {
-                return true
-            }
-        }
+        // Check keywords
+        if hasClothingKeyword(productName) { return true }
         
-        // Check for clothing brands
+        // Check brands
         for brand in clothingBrands {
-            if lowercased.contains(brand) {
-                return true
-            }
+            if lowercased.contains(brand) { return true }
         }
         
+        // Default false (caller might override if context is strong)
         return false
     }
     
@@ -714,6 +716,10 @@ class ClothingDetector {
         
         return true
     }
+    
+    static func isBrandName(_ name: String) -> Bool {
+        return clothingBrands.contains(name.lowercased())
+    }
 }
 
 // MARK: - Generic Parser (Fallback)
@@ -728,6 +734,8 @@ class GenericEmailParser: EmailParser {
         let imgTagPattern = #"<img\s+([^>]+)>"#
         let regex = try NSRegularExpression(pattern: imgTagPattern, options: .caseInsensitive)
         let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        
+        var seenURLs = Set<URL>()
         
         for match in matches {
             if match.numberOfRanges >= 2,
@@ -752,10 +760,27 @@ class GenericEmailParser: EmailParser {
                 
                 guard !productName.isEmpty else { continue }
                 
-                // ✨ Filter to clothing items only
-                guard ClothingDetector.isClothingItem(productName) else {
+                // Determine if valid product
+                // 1. Strict check (keywords/brands)
+                var isValid = ClothingDetector.isClothingItem(productName)
+                
+                // 2. Context check (Price pattern) for unknown brands
+                if !isValid && !ClothingDetector.isBlacklisted(productName) {
+                    // Check nearby text for price
+                    let context = extractNearbyText(from: html, around: tagRange)
+                    if hasPricePattern(context) {
+                        isValid = true
+                    }
+                }
+                
+                // Apply Filter
+                guard isValid, !ClothingDetector.isBrandName(productName) else {
                     continue
                 }
+                
+                // Deduplicate by URL
+                guard !seenURLs.contains(imageURL) else { continue }
+                seenURLs.insert(imageURL)
                 
                 products.append(ProductData(
                     name: productName,
@@ -781,6 +806,25 @@ class GenericEmailParser: EmailParser {
             return String(text[range])
         }
         return nil
+    }
+    
+    private func extractNearbyText(from html: String, around range: Range<String.Index>) -> String {
+        // Extract +/- 300 chars
+        let startOffset = html.distance(from: html.startIndex, to: range.lowerBound)
+        let endOffset = html.distance(from: html.startIndex, to: range.upperBound)
+        
+        let start = max(0, startOffset - 300)
+        let end = min(html.count, endOffset + 300)
+        
+        let startIndex = html.index(html.startIndex, offsetBy: start)
+        let endIndex = html.index(html.startIndex, offsetBy: end)
+        
+        return String(html[startIndex..<endIndex])
+    }
+    
+    private func hasPricePattern(_ text: String) -> Bool {
+        let priceRegex = #"\$\d+([.,]\d{2})?|\d+([.,]\d{2})?\s*USD"#
+        return text.range(of: priceRegex, options: [.regularExpression, .caseInsensitive]) != nil
     }
     
     func cleanProductName(_ name: String) -> String {
@@ -818,6 +862,8 @@ class AmazonEmailParser: EmailParser {
         if let regex = try? NSRegularExpression(pattern: productPattern, options: [.caseInsensitive, .dotMatchesLineSeparators]) {
             let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
             
+            var seenURLs = Set<URL>()
+            
             for match in matches {
                 if match.numberOfRanges >= 3,
                    let imageURLRange = Range(match.range(at: 1), in: html),
@@ -830,7 +876,12 @@ class AmazonEmailParser: EmailParser {
                        !productName.isEmpty,
                        ClothingDetector.isLikelyProductImage(url: imageURLString, alt: productName) {
                         // Filter to clothing items only
-                        guard ClothingDetector.isClothingItem(productName) else { continue }
+                        guard ClothingDetector.isClothingItem(productName),
+                              !ClothingDetector.isBrandName(productName) else { continue }
+                        
+                        // Deduplicate
+                        guard !seenURLs.contains(imageURL) else { continue }
+                        seenURLs.insert(imageURL)
                         
                         products.append(ProductData(
                             name: productName,
@@ -870,6 +921,8 @@ class NikeEmailParser: EmailParser {
         if let regex = try? NSRegularExpression(pattern: imagePattern, options: .caseInsensitive) {
             let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
             
+            var seenURLs = Set<URL>()
+            
             for match in matches {
                 if match.numberOfRanges >= 2,
                    let imageURLRange = Range(match.range(at: 1), in: html) {
@@ -883,7 +936,12 @@ class NikeEmailParser: EmailParser {
                           let imageURL = URL(string: imageURLString) else { continue }
                     
                     // Filter to clothing items only
-                    guard ClothingDetector.isClothingItem(productName) else { continue }
+                    guard ClothingDetector.isClothingItem(productName),
+                          !ClothingDetector.isBrandName(productName) else { continue }
+                    
+                    // Deduplicate
+                    guard !seenURLs.contains(imageURL) else { continue }
+                    seenURLs.insert(imageURL)
                     
                     products.append(ProductData(
                         name: productName,
@@ -934,6 +992,8 @@ class ZaraEmailParser: EmailParser {
         if let regex = try? NSRegularExpression(pattern: productPattern, options: .caseInsensitive) {
             let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
             
+            var seenURLs = Set<URL>()
+            
             for match in matches {
                 if match.numberOfRanges >= 4,
                    let imageURLRange = Range(match.range(at: 1), in: html),
@@ -946,7 +1006,12 @@ class ZaraEmailParser: EmailParser {
                        !productName.isEmpty,
                        ClothingDetector.isLikelyProductImage(url: imageURLString, alt: productName) {
                         // Filter to clothing items only
-                        guard ClothingDetector.isClothingItem(productName) else { continue }
+                        guard ClothingDetector.isClothingItem(productName),
+                              !ClothingDetector.isBrandName(productName) else { continue }
+                        
+                        // Deduplicate
+                        guard !seenURLs.contains(imageURL) else { continue }
+                        seenURLs.insert(imageURL)
                         
                         products.append(ProductData(
                             name: productName,
