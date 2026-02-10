@@ -265,10 +265,12 @@ class EmailOnboardingService: ObservableObject {
     }
     
     private func buildGmailQuery(for range: TimeRange) -> String {
-        let subjectFilter = "subject:(\"order shipped\" OR \"order delivered\" OR \"delivery confirmation\")"
+        // Focus on shipped/delivered confirmations (highest likelihood of kept items)
+        let subjectFilter = "subject:(\"shipped\" OR \"delivered\" OR \"delivery confirmation\" OR \"shipment\")"
+        let fromFilter = "from:(amazon OR nike OR zara OR shop OR store OR order)"
         let timeFilter = range.gmailTimeFilter
         
-        return "\(subjectFilter) \(timeFilter)"
+        return "\(subjectFilter) \(fromFilter) \(timeFilter)"
     }
     
     // MARK: - Email Parsing
@@ -281,10 +283,7 @@ class EmailOnboardingService: ObservableObject {
                 progress?.processedEmails = index + 1
             }
             
-            // Get full email content
-            // TODO: GET /gmail/v1/users/me/messages/{id}?format=full
-            
-            // Identify retailer from sender
+            // Select parser based on sender
             let parser = selectParser(for: email)
             
             // Extract products
@@ -297,9 +296,19 @@ class EmailOnboardingService: ObservableObject {
     }
     
     private func selectParser(for email: GmailMessage) -> EmailParser {
-        // TODO: Implement retailer detection
-        // For now, use generic parser
-        return GenericEmailParser()
+        let from = email.from.lowercased()
+        
+        // Detect retailer from sender
+        if from.contains("amazon") {
+            return AmazonEmailParser()
+        } else if from.contains("nike") {
+            return NikeEmailParser()
+        } else if from.contains("zara") {
+            return ZaraEmailParser()
+        } else {
+            // Generic parser for unknown retailers
+            return GenericEmailParser()
+        }
     }
     
     // MARK: - ClothingItem Creation
@@ -519,8 +528,221 @@ struct ProductData {
 
 class GenericEmailParser: EmailParser {
     func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
-        // TODO: Implement generic HTML parsing
-        // Look for common patterns: <img> tags, product links, etc.
-        return []
+        guard let html = email.htmlBody else { return [] }
+        
+        var products: [ProductData] = []
+        
+        // Strategy: Find all images with product-like alt text and nearby text for names
+        let imagePattern = #"<img[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']+)["'][^>]*>"#
+        let regex = try NSRegularExpression(pattern: imagePattern, options: .caseInsensitive)
+        let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+        
+        for match in matches {
+            if match.numberOfRanges >= 3,
+               let imageURLRange = Range(match.range(at: 1), in: html),
+               let altTextRange = Range(match.range(at: 2), in: html) {
+                
+                let imageURLString = String(html[imageURLRange])
+                let altText = String(html[altTextRange])
+                
+                // Filter out common non-product images
+                guard !altText.lowercased().contains("logo"),
+                      !altText.lowercased().contains("banner"),
+                      !altText.lowercased().contains("icon"),
+                      !imageURLString.contains("spacer"),
+                      let imageURL = URL(string: imageURLString) else {
+                    continue
+                }
+                
+                // Use alt text as product name (clean it up)
+                let productName = cleanProductName(altText)
+                
+                guard !productName.isEmpty else { continue }
+                
+                products.append(ProductData(
+                    name: productName,
+                    imageURL: imageURL,
+                    brand: nil,
+                    size: nil,
+                    color: nil,
+                    category: nil,
+                    tags: []
+                ))
+            }
+        }
+        
+        return products
+    }
+    
+    func cleanProductName(_ name: String) -> String {
+        // Remove HTML entities and clean up
+        var cleaned = name
+            .replacingOccurrences(of: "&nbsp;", with: " ")
+            .replacingOccurrences(of: "&amp;", with: "&")
+            .replacingOccurrences(of: "&quot;", with: "\"")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Remove common noise words
+        let noiseWords = ["image", "product", "item"]
+        for noise in noiseWords {
+            if cleaned.lowercased() == noise {
+                return ""
+            }
+        }
+        
+        return cleaned
+    }
+}
+
+// MARK: - Amazon Parser
+
+class AmazonEmailParser: EmailParser {
+    func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
+        guard let html = email.htmlBody else { return [] }
+        
+        var products: [ProductData] = []
+        
+        // Amazon uses specific patterns for product images and titles
+        // Pattern: Look for product-image class and nearby product-title
+        let productPattern = #"<img[^>]*class="[^"]*product-image[^"]*"[^>]*src=["']([^"']+)["'][^>]*>.*?<[^>]*class="[^"]*product.*?title[^"]*"[^>]*>([^<]+)<"#
+        
+        if let regex = try? NSRegularExpression(pattern: productPattern, options: [.caseInsensitive, .dotMatchesLineSeparators]) {
+            let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+            
+            for match in matches {
+                if match.numberOfRanges >= 3,
+                   let imageURLRange = Range(match.range(at: 1), in: html),
+                   let nameRange = Range(match.range(at: 2), in: html) {
+                    
+                    let imageURLString = String(html[imageURLRange])
+                    let productName = String(html[nameRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    if let imageURL = URL(string: imageURLString), !productName.isEmpty {
+                        products.append(ProductData(
+                            name: productName,
+                            imageURL: imageURL,
+                            brand: "Amazon",
+                            size: nil,
+                            color: nil,
+                            category: nil,
+                            tags: ["amazon"]
+                        ))
+                    }
+                }
+            }
+        }
+        
+        // Fallback to generic parser if Amazon-specific pattern doesn't work
+        if products.isEmpty {
+            return try await GenericEmailParser().extractProducts(from: email)
+        }
+        
+        return products
+    }
+}
+
+// MARK: - Nike Parser
+
+class NikeEmailParser: EmailParser {
+    func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
+        guard let html = email.htmlBody else { return [] }
+        
+        var products: [ProductData] = []
+        
+        // Nike often includes product names in specific divs
+        // Look for images with high resolution (typically product photos)
+        let imagePattern = #"<img[^>]*src=["']([^"']+(?:nike|product)[^"']+)["'][^>]*>"#
+        
+        if let regex = try? NSRegularExpression(pattern: imagePattern, options: .caseInsensitive) {
+            let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+            
+            for match in matches {
+                if match.numberOfRanges >= 2,
+                   let imageURLRange = Range(match.range(at: 1), in: html) {
+                    
+                    let imageURLString = String(html[imageURLRange])
+                    
+                    guard let imageURL = URL(string: imageURLString) else { continue }
+                    
+                    // Extract product name from surrounding context
+                    let productName = extractNearbyText(from: html, around: match.range, pattern: #"<td[^>]*>([^<]+)</td>"#) ?? "Nike Product"
+                    
+                    products.append(ProductData(
+                        name: productName,
+                        imageURL: imageURL,
+                        brand: "Nike",
+                        size: nil,
+                        color: nil,
+                        category: nil,
+                        tags: ["nike"]
+                    ))
+                }
+            }
+        }
+        
+        if products.isEmpty {
+            return try await GenericEmailParser().extractProducts(from: email)
+        }
+        
+        return products
+    }
+    
+    private func extractNearbyText(from html: String, around range: NSRange, pattern: String) -> String? {
+        // Extract text nearby the match using another pattern
+        let context = NSRange(location: max(0, range.location - 500), length: min(1000, html.count - max(0, range.location - 500)))
+        
+        if let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: html, range: context),
+           match.numberOfRanges >= 2,
+           let textRange = Range(match.range(at: 1), in: html) {
+            return String(html[textRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        
+        return nil
+    }
+}
+
+// MARK: - Zara Parser
+
+class ZaraEmailParser: EmailParser {
+    func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
+        guard let html = email.htmlBody else { return [] }
+        
+        var products: [ProductData] = []
+        
+        // Zara typically uses clean product image URLs
+        let productPattern = #"<img[^>]*src=["']([^"']*zara[^"']+\.(jpg|jpeg|png))["'][^>]*alt=["']([^"']+)["'][^>]*>"#
+        
+        if let regex = try? NSRegularExpression(pattern: productPattern, options: .caseInsensitive) {
+            let matches = regex.matches(in: html, range: NSRange(html.startIndex..., in: html))
+            
+            for match in matches {
+                if match.numberOfRanges >= 4,
+                   let imageURLRange = Range(match.range(at: 1), in: html),
+                   let altTextRange = Range(match.range(at: 3), in: html) {
+                    
+                    let imageURLString = String(html[imageURLRange])
+                    let productName = String(html[altTextRange]).trimmingCharacters(in: .whitespacesAndNewlines)
+                    
+                    if let imageURL = URL(string: imageURLString), !productName.isEmpty {
+                        products.append(ProductData(
+                            name: productName,
+                            imageURL: imageURL,
+                            brand: "Zara",
+                            size: nil,
+                            color: nil,
+                            category: nil,
+                            tags: ["zara"]
+                        ))
+                    }
+                }
+            }
+        }
+        
+        if products.isEmpty {
+            return try await GenericEmailParser().extractProducts(from: email)
+        }
+        
+        return products
     }
 }
