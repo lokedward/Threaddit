@@ -109,7 +109,7 @@ class StylistService {
     // MARK: - Private Helpers
     
     private func buildPrompt(for items: [ClothingItem], gender: Gender) -> String {
-        let genderTerm = gender ==.female ? "female" : "male"
+        let genderTerm = gender == .female ? "female" : "male"
         let modelDescription = "Professional fashion photography of a \(genderTerm) model wearing"
         
         // Sort items by layering order for natural description
