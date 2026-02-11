@@ -100,11 +100,11 @@ struct PoshHeader: View {
     var body: some View {
         HStack(spacing: 12) {
             Image("brand_logo")
+                .renderingMode(.template) // Ensure template mode for tinting
                 .resizable()
-                .renderingMode(.template)
-                .foregroundColor(PoshTheme.Colors.ink)
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 22)
+                .foregroundColor(PoshTheme.Colors.ink)
             
             Text("THREADLIST")
                 .poshHeadline(size: 14) // Understated branding

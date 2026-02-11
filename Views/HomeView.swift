@@ -12,11 +12,12 @@ struct HomeView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            // Persistent Branding Header
+            // Persistent Branding Header with subtle tint
             PoshHeader(title: "WARDROBE")
-                .padding(.vertical, 16)
+                .padding(.vertical, 20)
                 .frame(maxWidth: .infinity)
-                .background(PoshTheme.Colors.canvas)
+                .background(PoshTheme.Colors.stone) // Subtle "Stone" tint for depth
+                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.border), alignment: .bottom)
             
             ZStack(alignment: .bottomTrailing) {
                 if categories.isEmpty {
