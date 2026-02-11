@@ -3,6 +3,7 @@
 // Light mode only - elegant champagne/gold color scheme
 
 import SwiftUI
+import UIKit
 
 struct PoshTheme {
     // MARK: - Colors
@@ -13,6 +14,9 @@ struct PoshTheme {
         static let ink = Color(white: 0.1)     // Soft Black
         static let stone = Color(white: 0.95)  // Subtle Cards
         static let accent = Color(red: 0.16, green: 0.20, blue: 0.25) // Muted Midnight
+        
+        static let uiInk = UIColor(white: 0.1, alpha: 1.0)
+        static let uiCanvas = UIColor(white: 0.99, alpha: 1.0)
         
         // Text - Mapped to Ink
         static let headline = ink

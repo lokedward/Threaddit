@@ -25,8 +25,8 @@ struct ContentView: View {
         
         // Item colors
         // Manually defining UIColors to avoid SwiftUI bridging issues in init
-        let ink = UIColor(white: 0.1, alpha: 1.0)
-        let unselectedInk = UIColor(white: 0.1, alpha: 0.3)
+        let ink = PoshTheme.Colors.uiInk
+        let unselectedInk = PoshTheme.Colors.uiInk.withAlphaComponent(0.3)
         
         let itemAppearance = UITabBarItemAppearance()
         itemAppearance.normal.iconColor = unselectedInk
@@ -103,7 +103,7 @@ struct ContentView: View {
             }
             .tag(3)
         }
-        .tint(Color(white: 0.1)) // Selected color
+        .tint(PoshTheme.Colors.ink) // Selected color
         .fullScreenCover(isPresented: $showingAddItem) {
             AddItemView()
         }
