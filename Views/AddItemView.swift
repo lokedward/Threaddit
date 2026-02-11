@@ -514,13 +514,18 @@ struct AddItemPickerModifiers: ViewModifier {
     
     private func processSingle(_ item: PhotosPickerItem) {
         isProcessingImage = true
-        Task {
+        // Use detached task with userInitiated priority to move work off the Main Actor
+        Task.detached(priority: .userInitiated) {
             if let data = try? await item.loadTransferable(type: Data.self),
                let img = UIImage.downsample(imageData: data, to: CGSize(width: 1500, height: 1500)) {
                 await MainActor.run {
-                    onInitialImage(img)
-                    selectedPhotoItem = nil
-                    isProcessingImage = false
+                    self.onInitialImage(img)
+                    self.selectedPhotoItem = nil
+                    self.isProcessingImage = false
+                }
+            } else {
+                await MainActor.run {
+                    self.isProcessingImage = false
                 }
             }
         }
@@ -528,7 +533,8 @@ struct AddItemPickerModifiers: ViewModifier {
     
     private func processBulk(_ items: [PhotosPickerItem]) {
         isProcessingImage = true
-        Task {
+        // Use detached task for bulk processing to prevent UI freezing
+        Task.detached(priority: .userInitiated) {
             var images: [UIImage] = []
             for item in items {
                 if let data = try? await item.loadTransferable(type: Data.self),
@@ -537,9 +543,9 @@ struct AddItemPickerModifiers: ViewModifier {
                 }
             }
             await MainActor.run {
-                onBulkProcessed(images)
-                selectedPhotoItems = []
-                isProcessingImage = false
+                self.onBulkProcessed(images)
+                self.selectedPhotoItems = []
+                self.isProcessingImage = false
             }
         }
     }
