@@ -8,7 +8,6 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.displayOrder) private var categories: [Category]
     @Binding var searchText: String
-    @Binding var showingAddItem: Bool
     
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -64,7 +63,7 @@ struct EmptyClosetView: View {
 
 #Preview {
     NavigationStack {
-        HomeView(searchText: .constant(""), showingAddItem: .constant(false))
+        HomeView(searchText: .constant(""))
     }
     .modelContainer(for: [ClothingItem.self, Category.self], inMemory: true)
 }

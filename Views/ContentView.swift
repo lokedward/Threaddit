@@ -7,10 +7,7 @@ import SwiftData
 struct ContentView: View {
     @State private var showingSettings = false
     @State private var searchText = ""
-    @State private var showingAddItem = false
-    
     @State private var selectedTab = 0
-    @State private var previousTab = 0
     
     init() {
         // 2.2. Style the Tab Bar
@@ -44,21 +41,10 @@ struct ContentView: View {
     }
     
     var body: some View {
-        TabView(selection: Binding(
-            get: { selectedTab },
-            set: { newValue in
-                if newValue == 1 {
-                    // Tab 2 "Curate" - Trigger Add Action
-                    showingAddItem = true
-                } else {
-                    selectedTab = newValue
-                    previousTab = newValue
-                }
-            }
-        )) {
+        TabView(selection: $selectedTab) {
             // Tab 1: Wardrobe
             NavigationStack {
-                HomeView(searchText: $searchText, showingAddItem: $showingAddItem)
+                HomeView(searchText: $searchText)
                     .navigationTitle("Wardrobe")
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar(.hidden, for: .navigationBar)
@@ -70,7 +56,7 @@ struct ContentView: View {
             .tag(0)
             
             // Tab 2: Curate (Action)
-            Text("") // Dummy view
+            AddItemView()
                 .tabItem {
                     Image(systemName: "plus")
                     Text("Curate")
@@ -104,9 +90,6 @@ struct ContentView: View {
             .tag(3)
         }
         .tint(PoshTheme.Colors.ink) // Selected color
-        .fullScreenCover(isPresented: $showingAddItem) {
-            AddItemView()
-        }
         .preferredColorScheme(.light) // Enforce Light Mode globally
     }
 }
