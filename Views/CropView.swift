@@ -30,59 +30,64 @@ struct CropView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // 1. Background
+                // 1. Solid Cinematic Background
                 Color.black.ignoresSafeArea()
                 
                 GeometryReader { geometry in
                     ZStack {
-                        // 2. The Manipulatable Image
                         if imageSize != .zero {
-                            Image(uiImage: image)
-                                .resizable()
-                                .aspectRatio(contentMode: .fill)
-                                .frame(width: imageSize.width, height: imageSize.height)
-                                .scaleEffect(scale)
-                                .offset(x: offset.width, y: offset.height)
-                                .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
-                                .gesture(
-                                    SimultaneousGesture(
-                                        MagnificationGesture()
-                                            .onChanged { val in
-                                                let delta = val / lastScale
-                                                lastScale = val
-                                                let newScale = scale * delta
-                                                scale = min(max(newScale, minScale), maxScale)
+                            // 2. The Interaction Layer (Dual Image)
+                            ZStack {
+                                // Layer A: The "Greyed Out" Background (Entire Image)
+                                imageView
+                                    .opacity(0.4)
+                                
+                                // Layer B: The "Clear" Crop Area (Clipped Viewport)
+                                Rectangle()
+                                    .fill(Color.clear)
+                                    .frame(width: cropSize.width, height: cropSize.height)
+                                    .overlay {
+                                        imageView
+                                    }
+                                    .clipped()
+                                
+                                // Layer C: Tertiary Editorial Polish (Grid)
+                                GridView(size: cropSize)
+                                    .allowsHitTesting(false)
+                            }
+                            .position(x: geometry.size.width / 2, y: geometry.size.height / 2)
+                            .gesture(
+                                SimultaneousGesture(
+                                    MagnificationGesture()
+                                        .onChanged { val in
+                                            let delta = val / lastScale
+                                            lastScale = val
+                                            let newScale = scale * delta
+                                            scale = min(max(newScale, minScale), maxScale)
+                                        }
+                                        .onEnded { _ in
+                                            lastScale = 1.0
+                                            withAnimation(.spring()) {
+                                                validateBounds()
                                             }
-                                            .onEnded { _ in
-                                                lastScale = 1.0
-                                                withAnimation(.spring()) {
-                                                    validateBounds()
-                                                }
-                                            },
-                                        DragGesture()
-                                            .onChanged { val in
-                                                let dragTranslation = CGSize(
-                                                    width: val.translation.width + lastOffset.width,
-                                                    height: val.translation.height + lastOffset.height
-                                                )
-                                                offset = dragTranslation
+                                        },
+                                    DragGesture()
+                                        .onChanged { val in
+                                            let dragTranslation = CGSize(
+                                                width: val.translation.width + lastOffset.width,
+                                                height: val.translation.height + lastOffset.height
+                                            )
+                                            offset = dragTranslation
+                                        }
+                                        .onEnded { val in
+                                            lastOffset = offset
+                                            withAnimation(.spring()) {
+                                                validateBounds()
                                             }
-                                            .onEnded { val in
-                                                lastOffset = offset
-                                                withAnimation(.spring()) {
-                                                    validateBounds()
-                                                }
-                                            }
-                                    )
+                                        }
                                 )
+                            )
                         }
-                        
-                        // 3. The "Hole" Mask (The Crop Frame)
-                        CropMaskOverlay(
-                            cropSize: cropSize,
-                            containerSize: geometry.size
-                        )
-                        .allowsHitTesting(false) // Let touches pass through to image
                     }
                     .onAppear {
                         configureLayout(in: geometry.size)
@@ -101,25 +106,33 @@ struct CropView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Done") {
-                        // Haptic feedback for success
                         let generator = UIImpactFeedbackGenerator(style: .medium)
                         generator.impactOccurred()
                         
-                        // Crop
                         if let cropped = cropImage() {
                             onComplete(cropped)
                         } else {
-                            onComplete(image) // Fallback
+                            onComplete(image)
                         }
                     }
                     .fontWeight(.bold)
-                    .foregroundColor(PoshTheme.Colors.canvas) // High contrast for dark editor
+                    .foregroundColor(PoshTheme.Colors.canvas)
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarBackground(Color.black, for: .navigationBar)
         }
+    }
+    
+    // Helper view to keep layers in sync
+    private var imageView: some View {
+        Image(uiImage: image)
+            .resizable()
+            .aspectRatio(contentMode: .fill)
+            .frame(width: imageSize.width, height: imageSize.height)
+            .scaleEffect(scale)
+            .offset(x: offset.width, y: offset.height)
     }
     
     // MARK: - Setup & Layout Logic
@@ -241,39 +254,29 @@ struct CropView: View {
     }
 }
 
-// MARK: - Visual Overlay
+// MARK: - Visual Polish
 
-struct CropMaskOverlay: View {
-    let cropSize: CGSize
-    let containerSize: CGSize
+struct GridView: View {
+    let size: CGSize
     
     var body: some View {
         ZStack {
-            // Semi-transparent dimming layer
-            Color.black.opacity(0.6)
-            
-            // "Cut out" the crop hole using blendMode
-            RoundedRectangle(cornerRadius: 0) // Keep it sharp for "Editorial" look
-                .frame(width: cropSize.width, height: cropSize.height)
-                .blendMode(.destinationOut)
-            
-            // Grid Lines (Rule of Thirds) - Lowered opacity for high-end look
+            // Rule of Thirds
             VStack {
                 Divider().background(Color.white.opacity(0.3))
                 Spacer()
                 Divider().background(Color.white.opacity(0.3))
             }
-            .frame(width: cropSize.width, height: cropSize.height)
-            .padding(.vertical, cropSize.height / 3)
+            .frame(width: size.width, height: size.height)
+            .padding(.vertical, size.height / 3)
             
             HStack {
                 Divider().background(Color.white.opacity(0.3))
                 Spacer()
                 Divider().background(Color.white.opacity(0.3))
             }
-            .frame(width: cropSize.width, height: cropSize.height)
-            .padding(.horizontal, cropSize.width / 3)
+            .frame(width: size.width, height: size.height)
+            .padding(.horizontal, size.width / 3)
         }
-        .compositingGroup() // Required for blendMode to punch a hole in *this* view only
     }
 }
