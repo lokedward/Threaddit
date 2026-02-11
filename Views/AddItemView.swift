@@ -324,14 +324,14 @@ struct MainFormView: View {
                     .padding(20).padding(.bottom, 40)
                 }
                 .onChange(of: name) { _, newValue in
-                    // If name becomes empty after being set (from resetForm), scroll to top
-                    if newValue.isEmpty && additionMode == .single {
+                    // Only scroll to top if the form was just reset (name cleared in Single mode)
+                    if newValue.isEmpty && additionMode == .single && !isSaving {
                         withAnimation { proxy.scrollTo("form_top", anchor: .top) }
                     }
                 }
-                .onChange(of: bulkImageQueue.count) { _, newValue in
-                    // Also scroll for bulk transitions
-                    if additionMode == .multiple {
+                .onChange(of: bulkImageQueue.count) { oldValue, newValue in
+                    // Scroll for bulk transitions (if count decreased)
+                    if additionMode == .multiple && newValue < oldValue {
                         withAnimation { proxy.scrollTo("form_top", anchor: .top) }
                     }
                 }
@@ -552,31 +552,22 @@ struct PoshTextField: View {
     @Binding var text: String
     var placeholder: String = ""
     
-    @State private var localText: String = ""
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(label).font(.system(size: 10, weight: .bold)).tracking(1).foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+            Text(label)
+                .font(.system(size: 10, weight: .bold))
+                .tracking(1)
+                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
             
-            TextField(placeholder, text: $localText)
+            TextField(placeholder, text: $text)
                 .poshBody(size: 16)
                 .padding(.vertical, 12)
-                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.ink.opacity(0.1)), alignment: .bottom)
-        }
-        .onAppear {
-            localText = text
-        }
-        .onChange(of: localText) { _, newValue in
-            // Propagate to binding only if different to avoid redundant parent updates
-            if newValue != text {
-                text = newValue
-            }
-        }
-        .onChange(of: text) { _, newValue in
-            // Sync if parent changes text (e.g. on clear)
-            if newValue != localText {
-                localText = newValue
-            }
+                .overlay(
+                    Rectangle()
+                        .frame(height: 0.5)
+                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.1)),
+                    alignment: .bottom
+                )
         }
     }
 }
