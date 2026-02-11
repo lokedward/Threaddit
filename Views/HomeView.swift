@@ -11,29 +11,36 @@ struct HomeView: View {
     @Binding var showingAddItem: Bool
     
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            if categories.isEmpty {
-                EmptyClosetView()
-            } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 24) {
-                        ForEach(categories) { category in
-                            if !category.items.isEmpty {
-                                CategoryShelfView(category: category)
+        VStack(spacing: 0) {
+            // Persistent Branding Header
+            PoshHeader(title: "WARDROBE")
+                .padding(.vertical, 16)
+                .frame(maxWidth: .infinity)
+                .background(PoshTheme.Colors.canvas)
+            
+            ZStack(alignment: .bottomTrailing) {
+                if categories.isEmpty {
+                    EmptyClosetView()
+                } else {
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 24) {
+                            ForEach(categories) { category in
+                                if !category.items.isEmpty {
+                                    CategoryShelfView(category: category)
+                                }
+                            }
+                            
+                            // Show empty state if all categories are empty
+                            if categories.allSatisfy({ $0.items.isEmpty }) {
+                                EmptyClosetView()
                             }
                         }
-                        
-                        // Show empty state if all categories are empty
-                        if categories.allSatisfy({ $0.items.isEmpty }) {
-                            EmptyClosetView()
-                        }
+                        .padding(.vertical)
                     }
-                    .padding(.vertical)
-                }
-                .refreshable {
-                    // Simulate a refresh delay to show the spinning animation
-                    // In a production app with a backend, this would trigger a data sync
-                    try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
+                    .refreshable {
+                        // Simulate a refresh delay to show the spinning animation
+                        try? await Task.sleep(nanoseconds: 800_000_000)
+                    }
                 }
             }
         }
