@@ -42,11 +42,11 @@ struct PoshTheme {
     // MARK: - Typography
     
     struct Typography {
-        static func headlineFont(size: CGFloat) -> Font {
+        static func headline(size: CGFloat) -> Font {
             .system(size: size, weight: .regular, design: .default)
         }
         
-        static func bodyFont(size: CGFloat, weight: Font.Weight = .light) -> Font {
+        static func body(size: CGFloat, weight: Font.Weight = .light) -> Font {
             .system(size: size, weight: weight, design: .default)
         }
     }
@@ -92,14 +92,14 @@ extension View {
     }
     
     func poshHeadline(size: CGFloat = 24) -> some View {
-        self.font(PoshTheme.Typography.headlineFont(size: size))
+        self.font(PoshTheme.Typography.headline(size: size))
             .textCase(.uppercase)
             .kerning(2.0)
             .foregroundColor(PoshTheme.Colors.headline)
     }
     
     func poshBody(size: CGFloat = 16, weight: Font.Weight = .light) -> some View {
-        self.font(PoshTheme.Typography.bodyFont(size: size, weight: weight))
+        self.font(PoshTheme.Typography.body(size: size, weight: weight))
             .foregroundColor(PoshTheme.Colors.body)
     }
 }
