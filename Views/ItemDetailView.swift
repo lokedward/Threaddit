@@ -58,7 +58,7 @@ struct ItemDetailView: View {
                                                 .font(.system(size: 18, weight: .light))
                                                 .foregroundColor(.white)
                                                 .padding(12)
-                                                .background(PoshTheme.Colors.primaryGradient)
+                                                .background(PoshTheme.Colors.ink)
                                                 .clipShape(Circle())
                                                 .shadow(color: .black.opacity(0.1), radius: 5)
                                         }
@@ -72,7 +72,8 @@ struct ItemDetailView: View {
                                 .overlay {
                                     Image(systemName: "handbag")
                                         .font(.system(size: 40, weight: .thin))
-                                        .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3))
+                                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
+
                                 }
                         }
                     }
@@ -107,13 +108,13 @@ struct ItemDetailView: View {
                         saveEdits()
                     }
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                    .foregroundColor(PoshTheme.Colors.ink)
                 } else {
                     Button("EDIT") {
                         startEditing()
                     }
                     .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                    .foregroundColor(PoshTheme.Colors.ink)
                 }
             }
         }
@@ -213,7 +214,7 @@ struct ItemDetailView: View {
                         Text("COLLECTION")
                             .font(.system(size: 10, weight: .bold))
                             .tracking(1)
-                            .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                         
                         if let category = item.category {
                             Text(category.name)
@@ -230,11 +231,11 @@ struct ItemDetailView: View {
                         Text(brand.uppercased())
                             .font(.system(size: 12, weight: .bold))
                             .tracking(2)
-                            .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                            .foregroundColor(PoshTheme.Colors.ink)
                     }
                 }
                 
-                Divider().background(PoshTheme.Colors.secondaryAccent.opacity(0.2))
+                Divider().background(PoshTheme.Colors.ink.opacity(0.2))
                 
                 // Details Grid
                 VStack(spacing: 16) {
@@ -254,7 +255,7 @@ struct ItemDetailView: View {
                     Text("CHARACTERISTICS")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1)
-                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                     
                     FlowLayout(spacing: 10) {
                         ForEach(item.tags, id: \.self) { tag in
@@ -263,7 +264,7 @@ struct ItemDetailView: View {
                                 .tracking(1)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 8)
-                                .background(PoshTheme.Colors.secondaryAccent.opacity(0.1))
+                                .background(PoshTheme.Colors.ink.opacity(0.1))
                                 .foregroundColor(PoshTheme.Colors.body)
                                 .clipShape(Capsule())
                         }
@@ -300,7 +301,7 @@ struct ItemDetailView: View {
                     Text("CATEGORY")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1)
-                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                     
                     Menu {
                         ForEach(categories) { category in
@@ -315,10 +316,10 @@ struct ItemDetailView: View {
                             Spacer()
                             Image(systemName: "chevron.down")
                                 .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                .foregroundColor(PoshTheme.Colors.ink)
                         }
                         .padding(.vertical, 12)
-                        .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+                        .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.ink.opacity(0.3)), alignment: .bottom)
                     }
                 }
                 
@@ -335,7 +336,7 @@ struct ItemDetailView: View {
                 Text("DISCARD EDITS")
                     .font(.system(size: 11, weight: .bold))
                     .tracking(1)
-                    .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    .foregroundColor(PoshTheme.Colors.ink)
                     .frame(maxWidth: .infinity)
             }
         }

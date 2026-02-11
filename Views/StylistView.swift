@@ -27,7 +27,7 @@ struct StylistView: View {
                 // Bottom Selection Drawer/Grid
                 VStack(spacing: 0) {
                     Divider()
-                        .background(PoshTheme.Colors.secondaryAccent.opacity(0.3))
+                        .background(PoshTheme.Colors.ink.opacity(0.1))
                     
                     
                     HStack {
@@ -40,7 +40,7 @@ struct StylistView: View {
                             if !selectedItems.isEmpty {
                                 Text("(\(selectedItems.count))")
                                     .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                                    .foregroundColor(PoshTheme.Colors.ink)
                             }
                         }
                         
@@ -57,14 +57,14 @@ struct StylistView: View {
                             } label: {
                                 Text("SDXL")
                                     .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(StylistService.shared.forceProvider == .sdxl ? .white : PoshTheme.Colors.secondaryAccent)
+                                    .foregroundColor(StylistService.shared.forceProvider == .sdxl ? .white : PoshTheme.Colors.ink.opacity(0.5))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(StylistService.shared.forceProvider == .sdxl ? PoshTheme.Colors.primaryAccentStart : Color.clear)
+                                    .background(StylistService.shared.forceProvider == .sdxl ? PoshTheme.Colors.ink : Color.clear)
                                     .cornerRadius(4)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 4)
-                                            .stroke(PoshTheme.Colors.secondaryAccent.opacity(0.3), lineWidth: 1)
+                                            .stroke(PoshTheme.Colors.ink.opacity(0.3), lineWidth: 1)
                                     )
                             }
                             
@@ -73,14 +73,14 @@ struct StylistView: View {
                             } label: {
                                 Text("IMAGEN")
                                     .font(.system(size: 9, weight: .bold))
-                                    .foregroundColor(StylistService.shared.forceProvider == .imagen ? .white : PoshTheme.Colors.secondaryAccent)
+                                    .foregroundColor(StylistService.shared.forceProvider == .imagen ? .white : PoshTheme.Colors.ink.opacity(0.5))
                                     .padding(.horizontal, 8)
                                     .padding(.vertical, 4)
-                                    .background(StylistService.shared.forceProvider == .imagen ? PoshTheme.Colors.primaryAccentStart : Color.clear)
+                                    .background(StylistService.shared.forceProvider == .imagen ? PoshTheme.Colors.ink : Color.clear)
                                     .cornerRadius(4)
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 4)
-                                            .stroke(PoshTheme.Colors.secondaryAccent.opacity(0.3), lineWidth: 1)
+                                            .stroke(PoshTheme.Colors.ink.opacity(0.3), lineWidth: 1)
                                     )
                             }
                         }
@@ -91,7 +91,7 @@ struct StylistView: View {
                             }
                         } label: {
                             Image(systemName: showingSelection ? "chevron.down" : "chevron.up")
-                                .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                                .foregroundColor(PoshTheme.Colors.ink)
                         }
                     }
                     .padding()
@@ -125,7 +125,7 @@ struct StylistView: View {
                     Button("Male Model") { modelGender = .male }
                 } label: {
                     Image(systemName: "person.2")
-                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        .foregroundColor(PoshTheme.Colors.ink)
                 }
             }
         }

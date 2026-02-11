@@ -90,7 +90,8 @@ struct AddItemView: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") { dismiss() }
                         .poshBody(size: 16)
-                        .foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        .foregroundColor(PoshTheme.Colors.ink)
+
                 }
             }
             // Modifiers decoupled here
@@ -264,7 +265,8 @@ struct MainFormView: View {
                                 let currentItemIndex = totalBulkItems - (itemsRemaining ?? bulkImageQueue.count) + 1
                                 Text("ITEM \(currentItemIndex) OF \(totalBulkItems)")
                                     .font(.system(size: 10, weight: .bold)).tracking(2)
-                                    .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.6))
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+
                             }
                             
                             DetailsSectionView(
@@ -284,7 +286,8 @@ struct MainFormView: View {
                                 Button(action: onSkip) {
                                     Text("SKIP THIS ITEM")
                                         .font(.system(size: 12, weight: .bold)).tracking(2)
-                                        .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.8))
+                                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
+
                                 }
                                 .padding(.top, 8)
                             }
@@ -318,15 +321,16 @@ struct ImageSectionView: View, Equatable {
                 if showChangeButton {
                     Button(action: onTrigger) {
                         Text("CHANGE PHOTO").font(.system(size: 12, weight: .bold)).tracking(1)
-                            .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                            .foregroundColor(PoshTheme.Colors.ink)
+
                     }
                 }
             } else {
                 Button(action: onTrigger) {
                     VStack(spacing: 20) {
-                        Image(systemName: "plus").font(.system(size: 30, weight: .light)).foregroundColor(PoshTheme.Colors.secondaryAccent)
-                            .padding(20).background(Circle().stroke(PoshTheme.Colors.secondaryAccent.opacity(0.3), lineWidth: 1))
-                        Text("ADD PHOTOGRAPH").font(.system(size: 12, weight: .bold)).tracking(2).foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        Image(systemName: "plus").font(.system(size: 30, weight: .light)).foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                            .padding(20).background(Circle().stroke(PoshTheme.Colors.ink.opacity(0.2), lineWidth: 1))
+                        Text("ADD PHOTOGRAPH").font(.system(size: 12, weight: .bold)).tracking(2).foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
                     }
                     .frame(maxWidth: .infinity).frame(height: 300)
                     .background(PoshTheme.Colors.cardBackground).cornerRadius(16).poshCard()
@@ -353,7 +357,7 @@ struct DetailsSectionView: View {
                 Spacer()
                 if showExpandButton {
                     Button { withAnimation { isExpanded.toggle() } } label: {
-                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down").foregroundColor(PoshTheme.Colors.secondaryAccent)
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down").foregroundColor(PoshTheme.Colors.ink)
                     }
                 }
             }
@@ -377,17 +381,18 @@ struct CategoryPickerField: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("CATEGORY").font(.system(size: 10, weight: .bold)).tracking(1).foregroundColor(PoshTheme.Colors.secondaryAccent)
+            Text("CATEGORY").font(.system(size: 10, weight: .bold)).tracking(1).foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+
             Menu {
                 ForEach(categories) { cat in Button(cat.name) { selectedCategory = cat } }
             } label: {
                 HStack {
                     Text(selectedCategory?.name ?? "Select Category").poshBody(size: 16)
                     Spacer()
-                    Image(systemName: "chevron.down").font(.system(size: 12, weight: .semibold)).foregroundColor(PoshTheme.Colors.secondaryAccent)
+                    Image(systemName: "chevron.down").font(.system(size: 12, weight: .semibold)).foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
                 }
                 .padding(.vertical, 12)
-                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.ink.opacity(0.1)), alignment: .bottom)
             }
         }
     }
@@ -397,8 +402,8 @@ struct BulkEmptyStateView: View {
     let onOpenGallery: () -> Void
     var body: some View {
         VStack(spacing: 30) {
-            Image(systemName: "square.stack.3d.up").font(.system(size: 50, weight: .ultraLight)).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.4))
-            Text("SELECT MULTIPLE GARMENTS").font(.system(size: 14, weight: .bold)).tracking(2).foregroundColor(PoshTheme.Colors.secondaryAccent)
+            Image(systemName: "square.stack.3d.up").font(.system(size: 50, weight: .ultraLight)).foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
+            Text("SELECT MULTIPLE GARMENTS").font(.system(size: 14, weight: .bold)).tracking(2).foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
             Button(action: onOpenGallery) { Text("OPEN GALLERY").tracking(2) }.poshButton()
         }
         .frame(maxWidth: .infinity).padding(.vertical, 100)
@@ -511,12 +516,12 @@ struct PoshTextField: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(label).font(.system(size: 10, weight: .bold)).tracking(1).foregroundColor(PoshTheme.Colors.secondaryAccent)
+            Text(label).font(.system(size: 10, weight: .bold)).tracking(1).foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
             
             TextField(placeholder, text: $localText)
                 .poshBody(size: 16)
                 .padding(.vertical, 12)
-                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.3)), alignment: .bottom)
+                .overlay(Rectangle().frame(height: 0.5).foregroundColor(PoshTheme.Colors.ink.opacity(0.1)), alignment: .bottom)
         }
         .onAppear {
             localText = text

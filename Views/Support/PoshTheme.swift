@@ -14,29 +14,9 @@ struct PoshTheme {
         static let stone = Color(white: 0.95)  // Subtle Cards
         static let accent = Color(red: 0.16, green: 0.20, blue: 0.25) // Muted Midnight
         
-        // Deprecated / Mapped to new theme
-        static let background = canvas
-        static let cardBackground = Color.white
-        static let primaryAccentStart = accent
-        static let primaryAccentEnd = accent
-        
-        static var primaryGradient: LinearGradient {
-            // Flat gradient for backward compatibility
-            LinearGradient(colors: [accent, accent], 
-                          startPoint: .topLeading, 
-                          endPoint: .bottomTrailing)
-        }
-        
-        static let secondaryAccent = ink.opacity(0.5)
-        
-        // Text
+        // Text - Mapped to Ink
         static let headline = ink
         static let body = ink.opacity(0.8)
-        
-        // Shadows (Deprecated/ Subtle)
-        static var cardShadow: Color {
-            Color.clear // Removed shadow
-        }
     }
     
     // MARK: - Typography
@@ -57,7 +37,7 @@ struct PoshTheme {
 struct PoshCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(PoshTheme.Colors.cardBackground)
+            .background(Color.white)
             .cornerRadius(4) // Minimal
             .overlay(
                 RoundedRectangle(cornerRadius: 4)

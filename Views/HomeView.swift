@@ -36,21 +36,6 @@ struct HomeView: View {
                     try? await Task.sleep(nanoseconds: 800_000_000) // 0.8 seconds
                 }
             }
-            
-            // Floating Action Button
-            Button {
-                showingAddItem = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .light))
-                    .foregroundColor(.white)
-                    .frame(width: 64, height: 64)
-                    .background(PoshTheme.Colors.primaryGradient)
-                    .clipShape(Circle())
-                    .shadow(color: PoshTheme.Colors.primaryAccentStart.opacity(0.3), radius: 10, x: 0, y: 5)
-            }
-            .padding(.trailing, 24)
-            .padding(.bottom, 24)
         }
     }
 }
@@ -62,7 +47,7 @@ struct EmptyClosetView: View {
             
             Image(systemName: "tshirt")
                 .font(.system(size: 64, weight: .thin))
-                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.4))
+                .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
             
             Text("Your closet is empty")
                 .poshHeadline(size: 20)
