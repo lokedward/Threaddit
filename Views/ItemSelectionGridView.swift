@@ -50,14 +50,14 @@ struct SelectableItemThumbnail: View {
                     .scaleEffect(isSelected ? 0.95 : 1.0)
                     .overlay(
                         RoundedRectangle(cornerRadius: 12)
-                            .stroke(PoshTheme.Colors.primaryAccentStart, lineWidth: isSelected ? 3 : 0)
+                            .stroke(PoshTheme.Colors.ink, lineWidth: isSelected ? 3 : 0)
                     )
                 
                 
                 if isSelected {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 22))
-                        .foregroundColor(PoshTheme.Colors.primaryAccentStart)
+                        .foregroundColor(PoshTheme.Colors.ink)
                         .background(
                             Circle()
                                 .fill(.white)

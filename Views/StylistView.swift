@@ -14,7 +14,7 @@ struct StylistView: View {
     
     var body: some View {
         ZStack {
-            PoshTheme.Colors.background.ignoresSafeArea()
+            PoshTheme.Colors.canvas.ignoresSafeArea()
             
             VStack(spacing: 0) {
                 // Styling Canvas
@@ -35,7 +35,7 @@ struct StylistView: View {
                             Text("YOUR CLOSET")
                                 .font(.system(size: 10, weight: .bold))
                                 .tracking(2)
-                                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.6))
+                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                             
                             if !selectedItems.isEmpty {
                                 Text("(\(selectedItems.count))")
@@ -50,7 +50,7 @@ struct StylistView: View {
                         HStack(spacing: 8) {
                             Text("PROVIDER:")
                                 .font(.system(size: 9, weight: .semibold))
-                                .foregroundColor(PoshTheme.Colors.secondaryAccent.opacity(0.5))
+                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
                             
                             Button {
                                 StylistService.shared.forceProvider = .sdxl
@@ -95,7 +95,7 @@ struct StylistView: View {
                         }
                     }
                     .padding()
-                    .background(PoshTheme.Colors.cardBackground.opacity(0.5))
+                    .background(Color.white.opacity(0.5))
                     
                     if showingSelection {
                         ItemSelectionGridView(

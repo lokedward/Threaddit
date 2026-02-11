@@ -243,7 +243,7 @@ struct MainFormView: View {
     
     var body: some View {
         ZStack {
-            PoshTheme.Colors.background.ignoresSafeArea()
+            PoshTheme.Colors.canvas.ignoresSafeArea()
             ScrollView {
                 VStack(spacing: 24) {
                     Picker("Mode", selection: $additionMode) {
@@ -333,7 +333,7 @@ struct ImageSectionView: View, Equatable {
                         Text("ADD PHOTOGRAPH").font(.system(size: 12, weight: .bold)).tracking(2).foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
                     }
                     .frame(maxWidth: .infinity).frame(height: 300)
-                    .background(PoshTheme.Colors.cardBackground).cornerRadius(16).poshCard()
+                    .background(Color.white).cornerRadius(16).poshCard()
                 }.buttonStyle(.plain)
             }
         }

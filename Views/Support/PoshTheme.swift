@@ -10,20 +10,17 @@ struct PoshTheme {
     
     struct Colors {
         // Quiet Luxury Palette
-        static let primaryCanvas: Color = Color(white: 0.99) // Off-White/Paper
-        static let primaryInk: Color = Color(white: 0.1)     // Soft Black
-        static let stone = Color(white: 0.95)  // Subtle Cards
-        static let accent = Color(red: 0.16, green: 0.20, blue: 0.25) // Muted Midnight
+        static let canvas: Color = Color(white: 0.99) // Off-White/Paper
+        static let ink: Color = Color(white: 0.1)     // Soft Black
+        static let stone: Color = Color(white: 0.95)  // Subtle Cards
+        static let accent: Color = Color(red: 0.16, green: 0.20, blue: 0.25) // Muted Midnight
         
-        static let uiInk = UIColor(white: 0.1, alpha: 1.0)
-        static let uiCanvas = UIColor(white: 0.99, alpha: 1.0)
-        
-        static let canvas = primaryCanvas
-        static let ink = primaryInk
+        static let uiInk: UIColor = UIColor(white: 0.1, alpha: 1.0)
+        static let uiCanvas: UIColor = UIColor(white: 0.99, alpha: 1.0)
         
         // Text - Mapped to Ink
-        static let headline = primaryInk
-        static let body = primaryInk.opacity(0.8)
+        static let headline: Color = ink
+        static let body: Color = ink.opacity(0.8)
     }
     
     // MARK: - Typography
