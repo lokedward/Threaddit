@@ -12,12 +12,12 @@ class StylistService {
     
     // MARK: - Usage Tracking
     
-    @AppStorage("monthlyGenerationCount") private var monthlyGenerationCount: Int = 0
-    @AppStorage("lastResetDate") private var lastResetDate: String = ""
+    @AppStorage("dailyGenerationCount") private var dailyGenerationCount: Int = 0
+    @AppStorage("lastResetDate") private var lastResetDate: String = "" // "yyyy-MM-dd"
     @AppStorage("userTier") private var userTierRaw: String = "free"
     
     // MARK: - Testing Override
-    @Published var forceProvider: AIProvider? = nil // Set to override tier-based selection
+    @Published var forceProvider: AIProvider? = nil 
     
     enum AIProvider {
         case sdxl, imagen
@@ -29,28 +29,28 @@ class StylistService {
     }
     
     var generationsRemaining: Int? {
-        guard let limit = userTier.monthlyLimit else { return nil } // unlimited
+        let limit = userTier == .premium ? 50 : 3 // Daily limits
         resetCountIfNeeded()
-        return max(0, limit - monthlyGenerationCount)
+        return max(0, limit - dailyGenerationCount)
     }
     
     private func resetCountIfNeeded() {
-        let currentMonth = currentMonthKey()
-        if lastResetDate != currentMonth {
-            monthlyGenerationCount = 0
-            lastResetDate = currentMonth
+        let currentDay = currentDayKey()
+        if lastResetDate != currentDay {
+            dailyGenerationCount = 0
+            lastResetDate = currentDay
         }
     }
     
-    private func currentMonthKey() -> String {
+    private func currentDayKey() -> String {
         let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM"
+        formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: Date())
     }
     
     private func incrementGenerationCount() {
         resetCountIfNeeded()
-        monthlyGenerationCount += 1
+        dailyGenerationCount += 1
     }
     
     // MARK: - Layering Logic
@@ -79,12 +79,12 @@ class StylistService {
         return 0
     }
     
-    // MARK: - AI Generation
+    // MARK: - AI Generation (Outfit Stitching)
     
-    /// Generate a styled model photo with selected clothing items
+    /// Generate a cohesive outfit stitched onto a model using Google's Virtual Try-On logic
     func generateModelPhoto(items: [ClothingItem], gender: Gender) async throws -> UIImage {
-        guard !items.isEmpty else {
-            throw StylistError.noItemsSelected
+        guard items.count >= 2 else {
+            throw StylistError.apiError("Please select 2 or more items to stitch an outfit.")
         }
         
         // Check usage limits
@@ -92,36 +92,24 @@ class StylistService {
             throw StylistError.limitReached
         }
         
-        // Build the prompt
-        let prompt = buildPrompt(for: items, gender: gender)
-        
-        // Call appropriate API based on forceProvider (testing override) or tier
-        let generatedImageData: Data
-        if let forced = forceProvider {
-            // Override: use manually selected provider
-            switch forced {
-            case .sdxl:
-                generatedImageData = try await callStabilityAPI(prompt: prompt)
-            case .imagen:
-                generatedImageData = try await callImagenAPI(prompt: prompt)
-            }
-        } else {
-            // Normal flow: use tier-based selection
-            switch userTier {
-            case .free:
-                generatedImageData = try await callStabilityAPI(prompt: prompt)
-            case .premium:
-                generatedImageData = try await callImagenAPI(prompt: prompt)
-            }
+        // Prepare garment images
+        let garmentImages = items.compactMap { item -> UIImage? in
+            ImageStorageService.shared.loadImage(withID: item.imageID)
         }
         
-        guard let image = UIImage(data: generatedImageData) else {
+        guard garmentImages.count == items.count else {
             throw StylistError.invalidImageData
         }
         
-        // Increment usage counter
-        incrementGenerationCount()
+        // Build the stitching request
+        // Note: For Imagen 3 "Stitching" (Nanobanana), we typically send garments as auxiliary inputs
+        let imageData: Data = try await callStitchingAPI(garments: garmentImages, gender: gender)
         
+        guard let image = UIImage(data: imageData) else {
+            throw StylistError.invalidImageData
+        }
+        
+        incrementGenerationCount()
         return image
     }
     
@@ -287,127 +275,60 @@ class StylistService {
         return category // return original if no match
     }
     
-    // MARK: - API Calls
+    // MARK: - API Calls (Stitching Implementation)
     
-    private func callStabilityAPI(prompt: String) async throws -> Data {
-        guard let url = URL(string: AppConfig.stabilityEndpoint) else {
+    private func callStitchingAPI(garments: [UIImage], gender: Gender) async throws -> Data {
+        // Placeholder implementation for Nanobanana / Imagen 3 Stitching
+        // This is where you plug in the Google Vertex AI endpoint or specific production URL
+        
+        guard let url = URL(string: AppConfig.imagenEndpoint) else {
             throw StylistError.invalidEndpoint
         }
         
-        // Build request body for Stability AI (SDXL optimized)
+        // Convert garments to Base64 for the API
+        let garmentData = garments.compactMap { $0.jpegData(compressionQuality: 0.8)?.base64EncodedString() }
+        
+        // Construct Nanobanana-style stitching payload
         let requestBody: [String: Any] = [
-            "text_prompts": [
+            "instances": [
                 [
-                    "text": prompt,
-                    "weight": 1
-                ],
-                [
-                    // Enhanced negative prompt for SDXL
-                    "text": "blurry, distorted, low quality, cartoon, illustration, deformed body, extra limbs, malformed hands, disconnected clothing, floating garments, incorrect anatomy, unrealistic proportions, oversaturated colors, watermark, text overlay, multiple people, bad lighting, amateur photo",
-                    "weight": -1
+                    "prompt": "Professional fashion photography of a \(gender == .female ? "female" : "male") model wearing the provided garments in a cohesive outfit. High-end studio lighting, neutral background.",
+                    "garment_images": garmentData, // Custom field for stitching
+                    "model_gender": gender == .female ? "female" : "male"
                 ]
             ],
-            "cfg_scale": 12,  // Increased from 7 for better prompt adherence
-            "height": 1152,   // SDXL supported portrait dimension
-            "width": 896,     // 9:11.5 ratio for fashion photography
-            "samples": 1,
-            "steps": 40       // Increased from 30 for more detail
+            "parameters": [
+                "sampleCount": 1,
+                "aspectRatio": "3:4"
+            ]
         ]
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
             throw StylistError.invalidRequest
         }
         
-        // Create request
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue(AppConfig.stabilityAPIKey, forHTTPHeaderField: "Authorization")
+        request.setValue("Bearer \(AppConfig.googleAPIKey)", forHTTPHeaderField: "Authorization")
         request.httpBody = jsonData
         
-        // Execute request
         let (data, response) = try await URLSession.shared.data(for: request)
         
-        guard let httpResponse = response as? HTTPURLResponse,
-              (200...299).contains(httpResponse.statusCode) else {
-            throw StylistError.apiError(String(data: data, encoding: .utf8) ?? "Unknown error")
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw StylistError.apiError("Stitching API failed. Please check your Google Cloud configuration.")
         }
         
-        // Parse response
+        // Parse result (assuming standard Image generation response)
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let artifacts = json["artifacts"] as? [[String: Any]],
-              let firstArtifact = artifacts.first,
-              let base64Image = firstArtifact["base64"] as? String,
-              let imageData = Data(base64Encoded: base64Image) else {
+              let predictions = json["predictions"] as? [[String: Any]],
+              let first = predictions.first,
+              let b64 = first["bytesBase64Encoded"] as? String,
+              let image = Data(base64Encoded: b64) else {
             throw StylistError.invalidResponse
         }
         
-        return imageData
-    }
-    
-    private func callImagenAPI(prompt: String) async throws -> Data {
-        // Build URL with API key as query parameter
-        guard var urlComponents = URLComponents(string: AppConfig.imagenEndpoint) else {
-            throw StylistError.invalidEndpoint
-        }
-        urlComponents.queryItems = [URLQueryItem(name: "key", value: AppConfig.googleAPIKey)]
-        
-        guard let url = urlComponents.url else {
-            throw StylistError.invalidEndpoint
-        }
-        
-        // Build request body
-        let requestBody: [String: Any] = [
-            "prompt": prompt,
-            "number_of_images": 1,
-            "aspect_ratio": "3:4",
-            "safety_filter_level": "block_only_high",
-            "person_generation": "allow_adult",
-            "negative_prompt": "blurry, distorted, low quality, cartoon, illustration, deformed body, extra limbs, malformed hands"
-        ]
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-            throw StylistError.invalidRequest
-        }
-        
-        // Create request
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = jsonData
-        
-        // Execute request
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            throw StylistError.apiError("Invalid response")
-        }
-        
-        guard (200...299).contains(httpResponse.statusCode) else {
-            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
-            throw StylistError.apiError("HTTP \(httpResponse.statusCode): \(errorMessage)")
-        }
-        
-        // Parse response
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let images = json["images"] as? [[String: Any]],
-              let firstImage = images.first,
-              let base64Image = firstImage["image"] as? String,
-              let imageData = Data(base64Encoded: base64Image) else {
-            throw StylistError.invalidImageData
-        }
-        
-        return imageData
-    }
-    
-    /// Get styling advice (legacy method - can be removed or enhanced)
-    func getVibeCheck(for items: [ClothingItem]) async -> String {
-        guard !items.isEmpty else { return "Select some pieces to get started!" }
-        
-        try? await Task.sleep(nanoseconds: 1_500_000_000)
-        
-        let names = items.map { $0.name }
-        return "This combination of \(names.joined(separator: " and ")) looks incredibly chic! The palette is giving 'quiet luxury' vibes. Perfect for a gallery opening or a sophisticated brunch."
+        return image
     }
 }
 
@@ -427,17 +348,17 @@ enum StylistError: LocalizedError {
         case .noItemsSelected:
             return "Please select at least one clothing item"
         case .invalidImageData:
-            return "Could not process the generated image"
+            return "Could not process the garment images"
         case .invalidEndpoint:
-            return "Invalid API endpoint configuration"
+            return "Stitching API misconfigured"
         case .invalidRequest:
-            return "Failed to create API request"
+            return "Failed to create stitching request"
         case .invalidResponse:
-            return "Invalid response from AI service"
+            return "Invalid response from outfit generator"
         case .apiError(let message):
-            return "AI service error: \(message)"
+            return message
         case .limitReached:
-            return "You've reached your monthly generation limit. Upgrade to Premium for unlimited access!"
+            return "You've reached your daily limit of 3 outfits. Upgrade to Premium for unlimted looks!"
         }
     }
 }

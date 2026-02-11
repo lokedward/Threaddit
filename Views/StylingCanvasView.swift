@@ -73,7 +73,7 @@ struct StylingCanvasView: View {
                         .tracking(2)
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
                     
-                    Text(stylistService.userTier == .free ? "Using free tier (SDXL)" : "Using premium quality")
+                    Text(stylistService.userTier == .free ? "Using 3 daily free generations" : "Using premium quality")
                         .poshBody(size: 12)
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                 }
@@ -97,7 +97,7 @@ struct StylingCanvasView: View {
                     
                     // Usage info
                     if let remaining = stylistService.generationsRemaining {
-                        Text("\(remaining) free generations remaining this month")
+                        Text("\(remaining) free generations remaining today")
                             .poshBody(size: 12)
                             .foregroundColor(PoshTheme.Colors.ink.opacity(0.7))
                             .padding(.bottom, 8)
