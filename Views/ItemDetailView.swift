@@ -243,7 +243,7 @@ struct ItemDetailView: View {
                         PoshDetailRow(label: "SIZE", value: size)
                     }
                     
-                    PoshDetailRow(label: "ACQUIRED", value: item.dateAdded.formatted(date: .abbreviated, time: .omitted))
+                    PoshDetailRow(label: "ADDED", value: item.dateAdded.formatted(date: .abbreviated, time: .omitted))
                 }
             }
             .padding(24)
