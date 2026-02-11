@@ -31,10 +31,10 @@ struct SettingsView: View {
                     .renderingMode(.template)
                     .resizable()
                     .aspectRatio(contentMode: .fit)
-                    .frame(width: 80)
+                    .frame(width: 100)
                     .foregroundColor(PoshTheme.Colors.ink)
-                    .opacity(0.03) // Very subtle watermark effect
-                    .padding(.bottom, 40)
+                    .opacity(0.12) // Increased for better visibility as "black on light"
+                    .padding(.bottom, 60)
                 
                 ScrollView {
                     VStack(spacing: 24) {
