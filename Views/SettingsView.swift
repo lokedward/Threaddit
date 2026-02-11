@@ -206,7 +206,7 @@ struct SettingsView: View {
         do {
             let jsonData = try JSONSerialization.data(withJSONObject: exportData, options: .prettyPrinted)
             
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("threaddit_export.json")
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("threadlist_export.json")
             try jsonData.write(to: tempURL)
             
             exportURL = tempURL

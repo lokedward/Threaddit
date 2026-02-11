@@ -10,12 +10,13 @@ struct PoshTheme {
     
     struct Colors {
         // Quiet Luxury Palette
-        static let canvas: Color = Color(white: 0.99) // The Paper Background
-        static let ink: Color = Color(white: 0.1)     // Soft Black (Editorial Text)
-        static let stone: Color = Color(white: 0.96)  // Subtle Card backgrounds
-        static let border: Color = Color.black.opacity(0.08) // Tactile hairline borders
+        static let canvas: Color = Color(white: 0.99) // Backgrounds
+        static let ink: Color = Color(white: 0.12)    // Soft Charcoal primary
+        static let stone: Color = Color(white: 0.96)  // Card Backgrounds
+        static let border: Color = Color.black.opacity(0.08) // Hairlines
+        static let error: Color = Color(red: 0.8, green: 0.2, blue: 0.2).opacity(0.8) // Muted Red
         
-        static let uiInk: UIColor = UIColor(white: 0.1, alpha: 1.0)
+        static let uiInk: UIColor = UIColor(white: 0.12, alpha: 1.0)
         static let uiCanvas: UIColor = UIColor(white: 0.99, alpha: 1.0)
         
         // Text - Mapped to Ink
@@ -27,8 +28,8 @@ struct PoshTheme {
     
     struct Typography {
         static func headline(size: CGFloat) -> Font {
-            // Editorial signature: System regular with specific kerning in modifier
-            .system(size: size, weight: .regular, design: .default)
+            // Editorial signature: Serif regular
+            .system(size: size, weight: .regular, design: .serif)
         }
         
         static func body(size: CGFloat, weight: Font.Weight = .light) -> Font {
@@ -46,9 +47,9 @@ struct PoshCardModifier: ViewModifier {
             .cornerRadius(0) // Sharp editorial corners
             .overlay(
                 Rectangle()
-                    .stroke(PoshTheme.Colors.border, lineWidth: 1) // Sharp 1px border
+                    .stroke(PoshTheme.Colors.border, lineWidth: 0.5) // Physical 0.5pt hairline
             )
-            .shadow(color: .clear, radius: 0) // Remove any legacy floating shadows
+            .shadow(color: .clear, radius: 0)
     }
 }
 
@@ -97,14 +98,25 @@ struct PoshHeader: View {
     let title: String
     
     var body: some View {
-        HStack(spacing: 8) {
-            Image("app_icon") // This will use Icons/app_icon.png if properly added to assets
+        HStack(spacing: 12) {
+            Image("brand_logo")
                 .resizable()
+                .renderingMode(.template)
+                .foregroundColor(PoshTheme.Colors.ink)
                 .aspectRatio(contentMode: .fit)
-                .frame(width: 28, height: 28)
+                .frame(height: 22)
             
-            Text(title)
-                .poshHeadline(size: 24)
+            Text("THREADLIST")
+                .poshHeadline(size: 14) // Understated branding
+            
+            if !title.isEmpty && title != "THREADLIST" {
+                Text("|")
+                    .font(.system(size: 14, weight: .ultraLight))
+                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.2))
+                
+                Text(title)
+                    .poshHeadline(size: 14)
+            }
         }
     }
 }
