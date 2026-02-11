@@ -113,7 +113,7 @@ struct CropView: View {
                         }
                     }
                     .fontWeight(.bold)
-                    .foregroundColor(PoshTheme.Colors.ink) // High contrast for dark editor
+                    .foregroundColor(PoshTheme.Colors.canvas) // High contrast for dark editor
                 }
             }
             .toolbarColorScheme(.dark, for: .navigationBar)
@@ -257,12 +257,7 @@ struct CropMaskOverlay: View {
                 .frame(width: cropSize.width, height: cropSize.height)
                 .blendMode(.destinationOut)
             
-            // White Border around the hole
-            Rectangle()
-                .stroke(Color.white, lineWidth: 1) // Thin 1px border
-                .frame(width: cropSize.width, height: cropSize.height)
-            
-            // Grid Lines (Rule of Thirds) - Optional Polish
+            // Grid Lines (Rule of Thirds) - Lowered opacity for high-end look
             VStack {
                 Divider().background(Color.white.opacity(0.3))
                 Spacer()
