@@ -23,8 +23,9 @@ struct ContentView: View {
         appearance.shadowColor = .clear
         
         // Item colors
-        let ink = UIColor(PoshTheme.Colors.ink)
-        let unselectedInk = UIColor(PoshTheme.Colors.ink.opacity(0.3))
+        // Manually defining UIColors to avoid SwiftUI bridging issues in init
+        let ink = UIColor(white: 0.1, alpha: 1.0)
+        let unselectedInk = UIColor(white: 0.1, alpha: 0.3)
         
         let itemAppearance = UITabBarItemAppearance()
         itemAppearance.normal.iconColor = unselectedInk
@@ -58,7 +59,8 @@ struct ContentView: View {
             NavigationStack {
                 HomeView(searchText: $searchText, showingAddItem: $showingAddItem)
                     .navigationTitle("Wardrobe")
-                    .navigationBarTitleDisplayMode(.hidden) // Custom header usually, or standard? Using hidden for now as per "Typography as UI" pivot likely prefers clean headers.
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar(.hidden, for: .navigationBar)
             }
             .tabItem {
                 Image(systemName: "square.grid.2x2")
@@ -78,7 +80,8 @@ struct ContentView: View {
             NavigationStack {
                 StylistView()
                     .navigationTitle("Atelier")
-                    .navigationBarTitleDisplayMode(.hidden)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar(.hidden, for: .navigationBar)
             }
             .tabItem {
                 Image(systemName: "sparkles")
@@ -90,7 +93,8 @@ struct ContentView: View {
             NavigationStack {
                 SettingsView()
                     .navigationTitle("Account")
-                    .navigationBarTitleDisplayMode(.hidden)
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar(.hidden, for: .navigationBar)
             }
             .tabItem {
                 Image(systemName: "person")
