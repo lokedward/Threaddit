@@ -107,7 +107,6 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showingAddItem) {
             AddItemView()
         }
-        }
         .preferredColorScheme(.light) // Enforce Light Mode globally
     }
 }
