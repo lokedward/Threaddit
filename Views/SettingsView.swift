@@ -22,6 +22,7 @@ struct SettingsView: View {
     
     @Query private var allItems: [ClothingItem]
     @Query private var allCategories: [Category]
+    @Query private var allOutfits: [Outfit]
     
     var body: some View {
         NavigationStack {
@@ -242,6 +243,14 @@ struct SettingsView: View {
         // Delete custom categories (keep defaults)
         for category in allCategories {
             modelContext.delete(category)
+        }
+        
+        // Delete all outfits
+        for outfit in allOutfits {
+            if let imageID = outfit.generatedImageID {
+                ImageStorageService.shared.deleteImage(withID: imageID)
+            }
+            modelContext.delete(outfit)
         }
         
         // Re-seed defaults
