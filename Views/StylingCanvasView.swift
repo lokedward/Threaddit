@@ -26,14 +26,18 @@ struct StylingCanvasView: View {
             
             if let generated = generatedImage {
                 // Show generated model photo
-                VStack {
-                    Image(uiImage: generated)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
+                VStack(spacing: 8) {
+                    ZoomableImageView(image: generated)
+                        .frame(maxHeight: 500) // Contain the zoomable area
                         .clipShape(RoundedRectangle(cornerRadius: 20))
                         .poshCard()
-                        .padding()
+                        .padding(.horizontal)
                         .transition(.scale.combined(with: .opacity))
+                    
+                    Text("Pinch to zoom • Double tap to reset")
+                        .font(.system(size: 10, weight: .medium))
+                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                        .padding(.bottom, 8)
                     
                     // Regenerate button
                     Button {
