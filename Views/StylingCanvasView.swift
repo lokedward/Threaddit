@@ -2,6 +2,7 @@
 // View for generating AI-styled model photos with tier support
 
 import SwiftUI
+import SwiftData
 
 struct StylingCanvasView: View {
     @Environment(\.modelContext) private var modelContext
