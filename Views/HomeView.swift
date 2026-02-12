@@ -8,6 +8,7 @@ struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Category.displayOrder) private var categories: [Category]
     @Binding var searchText: String
+    @Binding var selectedTab: Int
     
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
@@ -26,7 +27,7 @@ struct HomeView: View {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 24) {
                         ForEach(categories) { category in
-                            CategoryShelfView(category: category)
+                            CategoryShelfView(category: category, selectedTab: $selectedTab)
                         }
                     }
                     .padding(.vertical)
@@ -35,20 +36,6 @@ struct HomeView: View {
                     try? await Task.sleep(nanoseconds: 800_000_000)
                 }
             }
-            
-            // Floating Action Button
-            NavigationLink {
-                AddItemView()
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 24, weight: .light))
-                    .foregroundColor(.white)
-                    .frame(width: 60, height: 60)
-                    .background(PoshTheme.Colors.ink)
-                    .clipShape(Circle())
-                    .shadow(color: .black.opacity(0.1), radius: 10, x: 0, y: 5)
-            }
-            .padding(24)
         }
     }
 }
@@ -57,7 +44,7 @@ struct HomeView: View {
 
 #Preview {
     NavigationStack {
-        HomeView(searchText: .constant(""))
+        HomeView(searchText: .constant(""), selectedTab: .constant(0))
     }
     .modelContainer(for: [ClothingItem.self, Category.self], inMemory: true)
 }

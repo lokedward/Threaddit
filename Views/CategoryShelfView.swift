@@ -6,6 +6,7 @@ import SwiftData
 
 struct CategoryShelfView: View {
     let category: Category
+    @Binding var selectedTab: Int
     
     private var sortedItems: [ClothingItem] {
         category.items.sorted { $0.dateAdded > $1.dateAdded }
@@ -52,6 +53,11 @@ struct CategoryShelfView: View {
                         let emoji = placeholderEmoji(for: category.name)
                         ShadowPlaceholderCard(emoji: emoji)
                             .frame(width: 140)
+                            .onTapGesture {
+                                withAnimation {
+                                    selectedTab = 1 // Switch to Curate tab
+                                }
+                            }
                     } else {
                         ForEach(sortedItems) { item in
                             NavigationLink {
@@ -126,7 +132,7 @@ struct ShadowPlaceholderCard: View {
     container.mainContext.insert(category)
     
     return NavigationStack {
-        CategoryShelfView(category: category)
+        CategoryShelfView(category: category, selectedTab: .constant(0))
     }
     .modelContainer(container)
 }
