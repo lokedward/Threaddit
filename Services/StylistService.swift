@@ -135,7 +135,11 @@ class StylistService {
             SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE")
         ]
         
-        let generationConfig: GenerationConfig? = (responseType == .image) ? GenerationConfig(candidateCount: 1) : nil
+        // Note: For image generation, we request 1 candidate. 
+        // We do *NOT* set responseMimeType to "image/jpeg" here because that wrapper is for the whole response, 
+        // and Gemini Flash returns multimodal parts (text + inline_data).
+        let generationConfig: GenerationConfig? = (responseType == .image) ?
+            GenerationConfig(candidateCount: 1, responseMimeType: nil) : nil
         
         let requestBody = GeminiRequest(
             contents: [content],
@@ -161,6 +165,11 @@ class StylistService {
         if httpResp.statusCode != 200 {
             print("Gemini API Error (\(httpResp.statusCode)): \(String(data: data, encoding: .utf8) ?? "Unknown")")
             throw StylistError.apiError("Generation failed (Status \(httpResp.statusCode))")
+        }
+        
+        // Debug: Log response for troubleshooting
+        if let jsonString = String(data: data, encoding: .utf8) {
+             print("GEMINI RAW RESPONSE: \(jsonString)")
         }
         
         // Parse Response
@@ -220,10 +229,18 @@ class StylistService {
 
 // MARK: - Gemini Codable Types
 
+// MARK: - Gemini Codable Types
+
 private struct GeminiRequest: Codable {
     let contents: [Content]
     let safetySettings: [SafetySetting]?
     let generationConfig: GenerationConfig?
+    
+    enum CodingKeys: String, CodingKey {
+        case contents
+        case safetySettings = "safety_settings"
+        case generationConfig = "generation_config"
+    }
 }
 
 private struct Content: Codable {
@@ -258,9 +275,11 @@ private struct SafetySetting: Codable {
 
 private struct GenerationConfig: Codable {
     let candidateCount: Int?
+    let responseMimeType: String?
     
     enum CodingKeys: String, CodingKey {
         case candidateCount = "candidate_count"
+        case responseMimeType = "response_mime_type"
     }
 }
 
@@ -270,6 +289,19 @@ private struct GeminiResponse: Codable {
 
 private struct Candidate: Codable {
     let content: Content?
+    let finishReason: String?
+    let safetyRatings: [SafetyRating]?
+    
+    enum CodingKeys: String, CodingKey {
+        case content
+        case finishReason = "finish_reason"
+        case safetyRatings = "safety_ratings"
+    }
+}
+
+private struct SafetyRating: Codable {
+    let category: String
+    let probability: String
 }
 
 // MARK: - Supporting Types
