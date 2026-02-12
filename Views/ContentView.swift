@@ -66,9 +66,6 @@ struct ContentView: View {
             // Tab 3: Studio
             NavigationStack {
                 StylistView()
-                    .navigationTitle("Studio")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar(.hidden, for: .navigationBar)
             }
             .tabItem {
                 Image(systemName: "sparkles")
