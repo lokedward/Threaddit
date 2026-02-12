@@ -79,12 +79,15 @@ class StylistService {
         let model = "gemini-2.5-flash-image" 
         
         let fullPrompt = """
+        <IMAGE_GENERATION>
         Generate a photorealistic, full-body editorial fashion photograph of a 5'6" Asian slim female model.
         The model is wearing this specific outfit: \(description).
         
         Setting: Neutral grey studio background.
         Lighting: Soft, cinematic, professional studio lighting.
         Style: 8k resolution, highly detailed texture, realistic proportions.
+        Output: Return only the generated image data.
+        </IMAGE_GENERATION>
         """
         
         // Response Type is .image
@@ -136,9 +139,10 @@ class StylistService {
         ]
         
         // If we expect an image, try to force it via generationConfig
+        // ⚠️ Removed "image/jpeg" as it's not a supported response_mime_type for this endpoint
         if responseType == .image {
             requestBody["generationConfig"] = [
-                "response_mime_type": "image/jpeg"
+                "candidate_count": 1
             ]
         }
         
