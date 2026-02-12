@@ -94,7 +94,8 @@ class StylistService {
     private enum ResponseType { case text, image }
     
     private func callGemini(prompt: String, images: [Data]?, responseType: ResponseType) async throws -> String {
-        let model = "gemini-2.0-flash"
+        // Use the experimental flash model which supports image generation
+        let model = "gemini-2.0-flash-exp"
         let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(AppConfig.googleAPIKey)"
         
         guard let url = URL(string: urlString) else { throw StylistError.invalidEndpoint }
@@ -113,9 +114,27 @@ class StylistService {
             }
         }
         
-        let requestBody: [String: Any] = [
-            "contents": [ ["parts": parts] ]
+        var requestBody: [String: Any] = [
+            "contents": [
+                [
+                    "role": "user",
+                    "parts": parts
+                ]
+            ],
+            "safetySettings": [
+                ["category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"],
+                ["category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"],
+                ["category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"],
+                ["category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"]
+            ]
         ]
+        
+        // If image is requested, we must tell Gemini to output an image mime type
+        if responseType == .image {
+            requestBody["generationConfig"] = [
+                "response_mime_type": "image/jpeg"
+            ]
+        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -138,11 +157,32 @@ class StylistService {
         }
         
         // Parse Response
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let content = candidates.first?["content"] as? [String: Any],
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            if let rawString = String(data: data, encoding: .utf8) {
+                print("❌ Failed to parse JSON. Raw response: \(rawString)")
+            }
+            throw StylistError.invalidResponse
+        }
+        
+        guard let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first else {
+            print("❌ No candidates in Gemini response: \(json)")
+            if let promptFeedback = json["promptFeedback"] as? [String: Any] {
+                print("⚠️ Prompt Feedback: \(promptFeedback)")
+            }
+            throw StylistError.invalidResponse
+        }
+        
+        guard let content = firstCandidate["content"] as? [String: Any],
               let partsResp = content["parts"] as? [[String: Any]],
               let firstPart = partsResp.first else {
+            print("❌ Candidate content/parts missing or empty. Candidate: \(firstCandidate)")
+            if let finishReason = firstCandidate["finishReason"] as? String {
+                print("⚠️ Finish Reason: \(finishReason)")
+                if finishReason == "SAFETY" {
+                    throw StylistError.apiError("Generation blocked by safety filters. Try a different outfit.")
+                }
+            }
             throw StylistError.invalidResponse
         }
         
