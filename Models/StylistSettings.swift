@@ -82,59 +82,9 @@ struct StylistSettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Model Profile") {
-                    Picker("Gender", selection: $genderRaw) {
-                        Text("Female").tag("female")
-                        Text("Male").tag("male")
-                    }
-                    .pickerStyle(.segmented)
-                    .listRowBackground(Color.clear)
-                    .padding(.vertical, 4)
-                    
-                    Picker("Body Type", selection: $bodyTypeRaw) {
-                        ForEach(ModelBodyType.allCases) { type in
-                            Text(type.rawValue).tag(type.rawValue)
-                        }
-                    }
-                    
-                    Picker("Height", selection: $heightRaw) {
-                        ForEach(ModelHeight.allCases) { height in
-                            Text(height.rawValue).tag(height.rawValue)
-                        }
-                    }
-                }
-                .listRowBackground(Color.white)
-                
-                Section("Appearance") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Skin Tone")
-                        
-                        HStack(spacing: 12) {
-                            ForEach(SkinTone.allCases) { tone in
-                                Circle()
-                                    .fill(tone.color)
-                                    .frame(width: 40, height: 40)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(PoshTheme.Colors.gold, lineWidth: tone.rawValue == skinToneRaw ? 3 : 0)
-                                    )
-                                    .onTapGesture {
-                                        skinToneRaw = tone.rawValue
-                                    }
-                            }
-                        }
-                        .padding(.bottom, 4)
-                    }
-                    .padding(.vertical, 4)
-                }
-                .listRowBackground(Color.white)
-                
-                Section {
-                    Text("These settings help the AI generate a model that best represents you or your desired look.")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .listRowBackground(Color.clear)
-                }
+                modelProfileSection
+                appearanceSection
+                footerSection
             }
             .scrollContentBackground(.hidden)
             .background(PoshTheme.Colors.canvas)
@@ -148,6 +98,66 @@ struct StylistSettingsView: View {
                     .foregroundColor(PoshTheme.Colors.ink)
                 }
             }
+        }
+    }
+    
+    private var modelProfileSection: some View {
+        Section("Model Profile") {
+            Picker("Gender", selection: $genderRaw) {
+                Text("Female").tag("female")
+                Text("Male").tag("male")
+            }
+            .pickerStyle(.segmented)
+            .listRowBackground(Color.clear)
+            .padding(.vertical, 4)
+            
+            Picker("Body Type", selection: $bodyTypeRaw) {
+                ForEach(ModelBodyType.allCases) { type in
+                    Text(type.rawValue).tag(type.rawValue)
+                }
+            }
+            
+            Picker("Height", selection: $heightRaw) {
+                ForEach(ModelHeight.allCases) { height in
+                    Text(height.rawValue).tag(height.rawValue)
+                }
+            }
+        }
+        .listRowBackground(Color.white)
+    }
+    
+    private var appearanceSection: some View {
+        Section("Appearance") {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Skin Tone")
+                
+                HStack(spacing: 12) {
+                    ForEach(SkinTone.allCases) { tone in
+                        Circle()
+                            .fill(tone.color)
+                            .frame(width: 40, height: 40)
+                            .overlay(
+                                Circle()
+                                    .stroke(PoshTheme.Colors.gold, lineWidth: tone.rawValue == skinToneRaw ? 3 : 0)
+                            )
+                            .onTapGesture {
+                                skinToneRaw = tone.rawValue
+                            }
+                    }
+                }
+                .padding(.bottom, 4)
+            }
+            .padding(.vertical, 4)
+        }
+        .listRowBackground(Color.white)
+    }
+    
+    private var footerSection: some View {
+        Section {
+            Text("These settings help the AI generate a model that best represents you or your desired look.")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .listRowBackground(Color.clear)
         }
     }
 }
