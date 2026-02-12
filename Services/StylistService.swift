@@ -172,9 +172,8 @@ class StylistService {
         }
         
         guard let content = firstCandidate["content"] as? [String: Any],
-              let partsResp = content["parts"] as? [[String: Any]],
-              let firstPart = partsResp.first else {
-            print("❌ Candidate content/parts missing or empty. Candidate: \(firstCandidate)")
+              let partsResp = content["parts"] as? [[String: Any]] else {
+            print("❌ Candidate content/parts missing. Candidate: \(firstCandidate)")
             if let finishReason = firstCandidate["finishReason"] as? String {
                 print("⚠️ Finish Reason: \(finishReason)")
                 if finishReason == "SAFETY" {
@@ -188,19 +187,23 @@ class StylistService {
         }
         
         if responseType == .text {
-            return firstPart["text"] as? String ?? ""
+            // Join all text parts if multiple exist
+            let textParts = partsResp.compactMap { $0["text"] as? String }
+            return textParts.joined(separator: "\n")
         } else {
-            // Image Generation returns 'inline_data'
-            if let inlineData = firstPart["inline_data"] as? [String: Any],
-               let b64 = inlineData["data"] as? String {
-                return b64
+            // Image Generation returns 'inline_data' - search all parts
+            for part in partsResp {
+                if let inlineData = part["inline_data"] as? [String: Any],
+                   let b64 = inlineData["data"] as? String {
+                    return b64
+                }
             }
             
-            // Debugging: If no image, what did we get?
-            if let text = firstPart["text"] as? String {
-                print("⚠️ Expected Image, but got Text: \(text)")
-                // If the model refuses, it usually explains why in the text.
-                throw StylistError.apiError("Generation refused: \(text)")
+            // If no image, collect all text for debugging
+            let textOutput = partsResp.compactMap { $0["text"] as? String }.joined(separator: " ")
+            if !textOutput.isEmpty {
+                print("⚠️ Expected Image, but only got Text: \(textOutput)")
+                throw StylistError.apiError("Generation refused: \(textOutput)")
             }
             
             throw StylistError.apiError("No image data returned")
