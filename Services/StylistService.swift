@@ -236,6 +236,20 @@ class StylistService {
 
 
 
+// MARK: - Gemini Codable Types
+
+private struct GeminiRequest: Codable {
+    let contents: [Content]
+    let safetySettings: [SafetySetting]?
+    let generationConfig: GenerationConfig?
+    
+    enum CodingKeys: String, CodingKey {
+        case contents
+        case safetySettings = "safety_settings"
+        case generationConfig = "generation_config"
+    }
+}
+
 private struct Content: Codable {
     let role: String?
     let parts: [Part]
