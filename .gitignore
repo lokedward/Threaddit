@@ -43,3 +43,4 @@ Pods/
 
 # API Keys & Secrets
 Config.swift
+Secrets.swift
