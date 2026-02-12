@@ -20,7 +20,7 @@ class StylistService {
     }
     
     var generationsRemaining: Int? {
-        let limit = userTier == .premium ? 50 : 3
+        let limit = userTier == .premium ? 50 : 10
         resetCountIfNeeded()
         return max(0, limit - dailyGenerationCount)
     }
@@ -45,52 +45,60 @@ class StylistService {
         }
         guard !garmentImages.isEmpty else { throw StylistError.invalidImageData }
         
-        // 2. Step A: Vision Analysis (Gemini 2.0 Flash)
-        let description = try await analyzeGarments(images: garmentImages)
+        // 2. Cache Check: Do we already have this exact outfit?
+        if let cachedImage = OutfitCacheService.shared.getCachedImage(for: items, gender: gender) {
+            print("🚀 Outfit Cache Hit! Returning stored image.")
+            return cachedImage
+        }
         
-        // 3. Step B: Image Generation (Gemini 2.0 Flash)
+        // 3. Step A: Vision Analysis (Gemini 2.5 Flash)
+        let description: String
+        if let cachedDesc = OutfitCacheService.shared.getCachedDescription(for: items, gender: gender) {
+            print("📝 Description Cache Hit.")
+            description = cachedDesc
+        } else {
+            description = try await analyzeGarments(images: garmentImages)
+            OutfitCacheService.shared.cacheDescription(description, for: items, gender: gender)
+        }
+        
+        // 4. Step B: Image Generation (Gemini 2.5 Flash Image)
         let resultImage = try await generateImage(description: description, gender: gender)
+        
+        // Cache the final result
+        OutfitCacheService.shared.cacheImage(resultImage, for: items, gender: gender)
         
         incrementGenerationCount()
         return resultImage
     }
     
-    // MARK: - Step A: Vision (See the Clothes)
     private func analyzeGarments(images: [Data]) async throws -> String {
-        // 1. Use the STANDARD Flash model for text analysis
-        // This model is optimized for vision-to-text input/output
         let model = "gemini-2.5-flash" 
         
         let prompt = """
-        Analyze these clothing items images. Create a single, highly detailed visual description suitable for an AI image generator.
-        Focus on fabrics, textures, exact colors, necklines, sleeve lengths, and fit.
-        Do not describe the background, hangers, or any person. Just describe the clothes as if worn together as an outfit.
-        Ensure the description is cohesive and ready to be used as a prompt for generating an image of a model wearing these exact items.
+        Output a detailed visual description of these clothes as a single outfit. 
+        Focus: fabrics, textures, colors, fit, necklines. 
+        Exclude: backgrounds, people, hangers. 
+        Format: Direct descriptive text for an image generator.
         """
         
-        // Response Type is .text
+        print("🔍 [Cost Optimization] Analyzing with tighter prompt...")
         return try await callGemini(model: model, prompt: prompt, images: images, responseType: .text)
     }
     
-    // MARK: - Step B: Generation (Create the Look)
     private func generateImage(description: String, gender: Gender) async throws -> UIImage {
-        // 2. Use the IMAGE specific model for generation
-        // If you use the standard model here, it will just return text!
         let model = "gemini-2.5-flash-image" 
+        let modelType = gender == .male ? "male" : "female"
         
         let fullPrompt = """
         <IMAGE_GENERATION_REQUEST>
-        Generate a photorealistic, full-body editorial fashion photograph of a 5'6" Asian slim female model.
-        The model is wearing this specific outfit: \(description).
-        
-        Setting: Neutral grey studio background.
-        Lighting: Soft, cinematic, professional studio lighting.
-        Style: 8k resolution, highly detailed texture, realistic proportions.
-        Output: You must natively generate the image bytes for this request.
+        Editorial neck down fashion photo, 5'6" Asian slim \(modelType) model.
+        Outfit: \(description).
+        Studio lighting, neutral grey background, 8k, highly detailed.
+        Output: Raw image bytes.
         </IMAGE_GENERATION_REQUEST>
         """
         
-        // Response Type is .image
+        print("🎨 [Cost Optimization] Generating with concise prompt...")
         let base64String = try await callGemini(model: model, prompt: fullPrompt, images: nil, responseType: .image)
         
         guard let data = Data(base64Encoded: base64String), let image = UIImage(data: data) else {
@@ -171,54 +179,11 @@ class StylistService {
         }
         
         // Parse Response
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-            if let rawString = String(data: data, encoding: .utf8) {
-                print("❌ Failed to parse JSON. Raw response: \(rawString)")
-            }
-            throw StylistError.invalidResponse
-        }
-        
-        // DEBUG: Granular part logging to diagnose 'white space' or truncation
-        if let candidates = json["candidates"] as? [[String: Any]],
-           let firstCandidate = candidates.first,
-           let content = firstCandidate["content"] as? [String: Any],
-           let parts = content["parts"] as? [[String: Any]] {
-            print("💎 Gemini Response Parts Count: \(parts.count)")
-            for (index, part) in parts.enumerated() {
-                if let text = part["text"] as? String {
-                    print("   📦 Part \(index): [Text] (\(text.count) characters)")
-                    if text.count < 500 { print("      Content: \"\(text)\"") }
-                } else if let inlineData = (part["inline_data"] ?? part["inlineData"]) as? [String: Any] {
-                    let mime = (inlineData["mime_type"] ?? inlineData["mimeType"]) as? String ?? "unknown"
-                    let b64 = (inlineData["data"] ?? "") as? String ?? ""
-                    print("   📦 Part \(index): [InlineData] MIME: \(mime), Data: \(b64.count) bytes")
-                } else {
-                    print("   📦 Part \(index): [Unknown] Keys: \(part.keys.joined(separator: ", "))")
-                }
-            }
-        }
-        
-        guard let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first else {
-            print("❌ No candidates in Gemini response: \(json)")
-            if let promptFeedback = json["promptFeedback"] as? [String: Any] {
-                print("⚠️ Prompt Feedback: \(promptFeedback)")
-            }
-            throw StylistError.invalidResponse
-        }
-        
-        guard let content = firstCandidate["content"] as? [String: Any],
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let firstCandidate = candidates.first,
+              let content = firstCandidate["content"] as? [String: Any],
               let partsResp = content["parts"] as? [[String: Any]] else {
-            print("❌ Candidate content/parts missing. Candidate: \(firstCandidate)")
-            if let finishReason = firstCandidate["finishReason"] as? String {
-                print("⚠️ Finish Reason: \(finishReason)")
-                if finishReason == "SAFETY" {
-                    if let safetyRatings = firstCandidate["safetyRatings"] as? [[String: Any]] {
-                        print("🛡️ Safety Ratings: \(safetyRatings)")
-                    }
-                    throw StylistError.apiError("Generation blocked by safety filters. Try a different outfit.")
-                }
-            }
             throw StylistError.invalidResponse
         }
         
@@ -227,35 +192,17 @@ class StylistService {
             let textParts = partsResp.compactMap { $0["text"] as? String }
             return textParts.joined(separator: "\n")
         } else {
-            // Search all parts for any image-like data
+            // Search all parts for image data (handles both snake_case and camelCase)
             for part in partsResp {
-                // 1. Check for inline_data (standard)
                 let inlineData = (part["inline_data"] ?? part["inlineData"]) as? [String: Any]
                 if let b64 = inlineData?["data"] as? String {
                     return b64
                 }
-                
-                // 2. Check for file_data (URLs/references)
-                let fileData = (part["file_data"] ?? part["fileData"]) as? [String: Any]
-                if let url = fileData?["file_uri"] ?? fileData?["fileUri"] as? String {
-                    print("🔗 Found image URL in file_data: \(url)")
-                    // Note: If it's a URL, we'd need to download it. For now, log it.
-                }
-                
-                // 3. Check for resultUrls (common in some Gemini image variants)
-                if let resultUrls = part["resultUrls"] as? [String], let firstUrl = resultUrls.first {
-                    print("🔗 Found image URL in resultUrls: \(firstUrl)")
-                }
             }
             
-            // If no image bytes found, collect all text for debugging
+            // Fallback: If no image pixels, check if the model gave a refusal message
             let textOutput = partsResp.compactMap { $0["text"] as? String }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
             if !textOutput.isEmpty {
-                print("⚠️ Expected Image, but only got Text: \(textOutput)")
-                // Special case: if it returned a URL in the text?
-                if textOutput.contains("http") && (textOutput.contains(".png") || textOutput.contains(".jpg")) {
-                    print("👀 Text looks like it might contain a URL: \(textOutput)")
-                }
                 throw StylistError.apiError("Generation refused: \(textOutput)")
             }
             
