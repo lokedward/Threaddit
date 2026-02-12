@@ -129,12 +129,9 @@ class StylistService {
             ]
         ]
         
-        // If image is requested, we must tell Gemini to output an image mime type
-        if responseType == .image {
-            requestBody["generationConfig"] = [
-                "response_mime_type": "image/jpeg"
-            ]
-        }
+        // Note: Gemini 2.0 Flash (Experimental) generates images natively when prompted.
+        // We do NOT use response_mime_type = "image/jpeg" because that field is for the overall response wrapper (text/json/etc).
+        // The image will be returned as a part within the 'inline_data' multimodal response.
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
