@@ -302,6 +302,12 @@ class StylistService {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // 🛡️ Add Bundle ID header to satisfy Google Cloud restrictions
+        if let bundleID = Bundle.main.bundleIdentifier {
+            request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
+        }
+        
         request.httpBody = jsonData
         
         let (data, response) = try await URLSession.shared.data(for: request)
