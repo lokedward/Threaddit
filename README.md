@@ -1,75 +1,70 @@
-# ThreadList
+# Threaddit: Digital Studio & Wardrobe
 
-A personal wardrobe inventory app for iOS that lets you digitize and organize your closet.
+**Threaddit** is a premium, AI-powered personal wardrobe management application for iOS. Designed with a "High-End Boutique" (Posh) aesthetic, it transforms the way you organize your closet and visualize your personal style.
 
-## Requirements
+---
 
-- **Xcode 15.0+**
-- **iOS 17.0+** (SwiftData requirement)
-- macOS Sonoma 14.0+ (for development)
+## ✨ Core Features
 
-## Setup Instructions
+### 🏛️ The Studio (AI Stylist)
+The centerpiece of Threaddit. Leverage **Google Gemini 2.5 Flash** to analyze your real clothing items and generate high-fidelity, editorial-style fashion photos.
+- **Visual Intelligence**: Analyzes fabric, texture, color, and fit of selected garments.
+- **Multimodal Generation**: Creates and caches realistic model photos of your specific outfit combinations.
+- **Pinch-to-Zoom**: Examine every detail of your AI-generated looks with intuitive gesture controls.
+- **Intelligent Caching**: Local persistence of outfit descriptions and images to minimize API latency and costs.
 
-### Option 1: Create Project in Xcode (Recommended)
+### 📧 Smart Email Import
+Automate your digital wardrobe building by connecting your GMail account.
+- **Automated Collection**: Scans order confirmations from top retailers (Nordstrom, Nike, ASOS, Zara, and more).
+- **Intelligent Parsing**: Extracts product names, brands, sizes, and high-resolution images using custom Google Apps Script integration.
+- **Generic Fallback**: Robust parsing logic to identify products from unknown brands by looking for contextual price and image clues.
 
-1. Open **Xcode** and create a new project:
-   - Select **App** template
-   - Product Name: `ThreadList`
-   - Interface: **SwiftUI**
-   - Language: **Swift**
-   - Storage: **SwiftData**
-   
-2. Delete the generated `ContentView.swift` and `Item.swift` (if created)
+### 📂 "Draft Your Closet" Onboarding
+A premium first-time experience that eliminates the "blank canvas" problem.
+- **Shadow Shelves**: Visual placeholders that show you exactly how your wardrobe will be organized before you even add an item.
+- **Seasonal Templates**: One-tap "Starter Capsules" (Winter Essentials, Weekend Edit, Minimalist) to instantly populate your category structure.
+- **Boutique UI**: A cohesive design system utilizing warm stone tones, serif typography, and elegant card-based layouts.
 
-3. Copy all files from this folder into your Xcode project:
-   - Drag the `Models/`, `Views/`, `Services/` folders and `ThreadListApp.swift` into the project navigator
-   - Ensure "Copy items if needed" is checked
-   - Select "Create groups"
+### 🛡️ Privacy & Performance
+- **Local-First Architecture**: Powered by **SwiftData** for secure, on-device metadata storage.
+- **Secure Image Handling**: Photos are stored locally in the app's sandboxed Documents directory.
+- **Off-Main-Actor Processing**: Heavy image resizing and analysis tasks are handled on detachment tasks to keep the UI fluid and responsive.
 
-4. Add camera/photo permissions in Xcode's Info tab (see Privacy section)
+---
 
-5. Replace `Assets.xcassets` contents with those from this folder
+## 🛠️ Tech Stack
 
-6. Build and run on iOS 17+ simulator or device
+- **UI Framework**: SwiftUI
+- **Data Layer**: SwiftData (Local Persistence)
+- **AI Engine**: Google Gemini API (`gemini-2.5-flash` & `gemini-2.5-flash-image`)
+- **Integration**: Google Apps Script (Email Parsing API)
+- **Networking**: URLSession with custom multimodal request builders
+- **Security**: CryptoKit for stable SHA256 caching keys
 
-## Project Structure
+---
 
-```
-ThreadList/
-├── ThreadListApp.swift         # App entry point with SwiftData container
-├── Assets.xcassets/            # App icons and colors
-├── Models/
-│   ├── ClothingItem.swift      # Main item model
-│   └── Category.swift          # User-editable categories
-├── Services/
-│   └── ImageStorageService.swift  # Image persistence
-└── Views/
-    ├── ContentView.swift       # Root navigation
-    ├── HomeView.swift          # Main closet view with shelves
-    ├── CategoryShelfView.swift # Horizontal item row
-    ├── CategoryGridView.swift  # Full category grid
-    ├── ItemThumbnailView.swift # Reusable thumbnail
-    ├── AddItemView.swift       # Add new item flow
-    ├── ItemDetailView.swift    # View/edit/delete item
-    ├── SearchView.swift        # Global search
-    ├── SettingsView.swift      # App settings
-    └── CategoryManagementView.swift  # Manage categories
-```
+## 🗺️ Roadmap & Current State
 
-## Features
+### **Current Phase: UI Polish & Stability (MVP+)**
+- [x] **Posh Design System**: Implementation of the signature boutique aesthetic.
+- [x] **AI Caching Layer**: Persistent storage for generated outfits.
+- [x] **Bulk Management**: "Skip" and "Abort" logic for large-scale closet digitization.
+- [x] **Interactive Studio**: Zoomable, high-res model photo generation.
 
-- ✅ Add clothing items with photos from camera or library
-- ✅ Organize by customizable categories
-- ✅ Search by name, brand, or tags
-- ✅ Add size and brand metadata
-- ✅ Dark/Light mode support
-- ✅ Export data as JSON
-- ✅ Fully offline - all data stored locally
+### **Future: Next Steps**
+- [ ] **Smart Outfit Recommendations**: Proactive AI suggestions based on the current weather and your calendar events.
+- [ ] **Community Showroom**: Opt-in sharing of generated looks to a curated community feed.
+- [ ] **Advanced Analytics**: "Cost-per-wear" tracking and wardrobe utility heatmaps.
+- [ ] **Multi-Device Sync**: Optional iCloud synchronization for wardrobe access across iPhone and iPad.
 
-## Privacy
+---
 
-ThreadList stores all data locally on your device using SwiftData. Images are saved to the app's Documents directory. No data is sent to external servers.
+## 🚀 Getting Started
 
-Required permissions:
-- **Camera**: To take photos of clothing items
-- **Photo Library**: To select existing images
+1. **API Keys**: Add your Gemini API Key to `AppConfig.swift`.
+2. **Permissions**: Ensure Camera and Photo Library access are granted.
+3. **Studio Access**: Navigate to the "Studio" tab to begin generating your first looks.
+
+---
+
+*Threaddit is more than a tracker; it's your personal fashion atelier.*
