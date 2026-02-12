@@ -82,6 +82,23 @@ class ClosetDataService {
         try context.save()
     }
     
+    
+    /// Seeds default data like Categories if they don't exist
+    @MainActor
+    func seedInitialData(context: ModelContext) throws {
+        let descriptor = FetchDescriptor<Category>()
+        let existingCategories = try context.fetch(descriptor)
+        
+        if existingCategories.isEmpty {
+            let defaultCategories = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"]
+            for (index, name) in defaultCategories.enumerated() {
+                let category = Category(name: name, displayOrder: index)
+                context.insert(category)
+            }
+            try context.save()
+        }
+    }
+    
     enum DataError: Error, LocalizedError {
         case imageSaveFailed
         case persistentStoreError

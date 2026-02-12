@@ -38,7 +38,7 @@ class StylistService {
         // 1. Prepare Images
         var garmentImages: [Data] = []
         for item in items {
-            if let img = ImageStorageService.shared.loadImage(withID: item.imageID),
+            if let img = await ImageStorageService.shared.loadImage(withID: item.imageID),
                let data = img.jpegData(compressionQuality: 0.7) {
                 garmentImages.append(data)
             }
@@ -118,45 +118,30 @@ class StylistService {
         guard let url = URL(string: urlString) else { throw StylistError.invalidEndpoint }
         
         // Construct Request
-        var parts: [[String: Any]] = [ ["text": prompt] ]
+        var parts: [Part] = [Part(text: prompt)]
         
         if let images = images {
             for imgData in images {
-                parts.append([
-                    "inline_data": [
-                        "mime_type": "image/jpeg",
-                        "data": imgData.base64EncodedString()
-                    ]
-                ])
+                parts.append(Part(inlineData: InlineData(mimeType: "image/jpeg", data: imgData.base64EncodedString())))
             }
         }
         
-        var requestBody: [String: Any] = [
-            "contents": [
-                [
-                    "role": "user",
-                    "parts": parts
-                ]
-            ],
-            "safetySettings": [
-                ["category": "HARM_CATEGORY_HARASSMENT", "threshold": "BLOCK_NONE"],
-                ["category": "HARM_CATEGORY_HATE_SPEECH", "threshold": "BLOCK_NONE"],
-                ["category": "HARM_CATEGORY_SEXUALLY_EXPLICIT", "threshold": "BLOCK_NONE"],
-                ["category": "HARM_CATEGORY_DANGEROUS_CONTENT", "threshold": "BLOCK_NONE"]
-            ]
+        let content = Content(role: "user", parts: parts)
+        
+        let safetySettings = [
+            SafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE"),
+            SafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE"),
+            SafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE"),
+            SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE")
         ]
         
-        // If we expect an image, try to force it via generationConfig
-        // NOTE: We avoid response_mime_type = 'image/jpeg' here as it causes 400 errors.
-        if responseType == .image {
-            requestBody["generationConfig"] = [
-                "candidate_count": 1
-            ]
-        }
+        let generationConfig: GenerationConfig? = (responseType == .image) ? GenerationConfig(candidateCount: 1) : nil
         
-        // Note: Gemini 2.0 Flash generates images natively when prompted.
-        // We do NOT use response_mime_type = "image/jpeg" because that field is for the overall response wrapper (text/json/etc).
-        // The image will be returned as a part within the 'inline_data' multimodal response.
+        let requestBody = GeminiRequest(
+            contents: [content],
+            safetySettings: safetySettings,
+            generationConfig: generationConfig
+        )
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -167,7 +152,7 @@ class StylistService {
             request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
         }
         
-        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        request.httpBody = try JSONEncoder().encode(requestBody)
         
         let (data, response) = try await URLSession.shared.data(for: request)
         
@@ -179,29 +164,30 @@ class StylistService {
         }
         
         // Parse Response
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let firstCandidate = candidates.first,
-              let content = firstCandidate["content"] as? [String: Any],
-              let partsResp = content["parts"] as? [[String: Any]] else {
+        let geminiResponse = try JSONDecoder().decode(GeminiResponse.self, from: data)
+        
+        guard let candidate = geminiResponse.candidates?.first,
+              let content = candidate.content,
+              !content.parts.isEmpty else {
             throw StylistError.invalidResponse
         }
         
+        let partsResp = content.parts
+        
         if responseType == .text {
             // Join all text parts if multiple exist
-            let textParts = partsResp.compactMap { $0["text"] as? String }
+            let textParts = partsResp.compactMap { $0.text }
             return textParts.joined(separator: "\n")
         } else {
-            // Search all parts for image data (handles both snake_case and camelCase)
+            // Search all parts for image data
             for part in partsResp {
-                let inlineData = (part["inline_data"] ?? part["inlineData"]) as? [String: Any]
-                if let b64 = inlineData?["data"] as? String {
+                if let b64 = part.inlineData?.data {
                     return b64
                 }
             }
             
             // Fallback: If no image pixels, check if the model gave a refusal message
-            let textOutput = partsResp.compactMap { $0["text"] as? String }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
+            let textOutput = partsResp.compactMap { $0.text }.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines)
             if !textOutput.isEmpty {
                 throw StylistError.apiError("Generation refused: \(textOutput)")
             }
@@ -230,6 +216,60 @@ class StylistService {
         resetCountIfNeeded()
         dailyGenerationCount += 1
     }
+}
+
+// MARK: - Gemini Codable Types
+
+private struct GeminiRequest: Codable {
+    let contents: [Content]
+    let safetySettings: [SafetySetting]?
+    let generationConfig: GenerationConfig?
+}
+
+private struct Content: Codable {
+    let role: String?
+    let parts: [Part]
+}
+
+private struct Part: Codable {
+    var text: String? = nil
+    var inlineData: InlineData? = nil
+    
+    enum CodingKeys: String, CodingKey {
+        case text
+        case inlineData = "inline_data"
+    }
+}
+
+private struct InlineData: Codable {
+    let mimeType: String
+    let data: String
+    
+    enum CodingKeys: String, CodingKey {
+        case mimeType = "mime_type"
+        case data
+    }
+}
+
+private struct SafetySetting: Codable {
+    let category: String
+    let threshold: String
+}
+
+private struct GenerationConfig: Codable {
+    let candidateCount: Int?
+    
+    enum CodingKeys: String, CodingKey {
+        case candidateCount = "candidate_count"
+    }
+}
+
+private struct GeminiResponse: Codable {
+    let candidates: [Candidate]?
+}
+
+private struct Candidate: Codable {
+    let content: Content?
 }
 
 // MARK: - Supporting Types

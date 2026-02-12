@@ -9,10 +9,16 @@ class ImageStorageService {
     
     private let fileManager = FileManager.default
     private let imageDirectory: URL
+    private let ioQueue = DispatchQueue(label: "com.threaddit.imagestorage", qos: .userInitiated)
+    private let cache = NSCache<NSString, UIImage>()
     
     private init() {
         let documentsPath = fileManager.urls(for: .documentDirectory, in: .userDomainMask)[0]
         imageDirectory = documentsPath.appendingPathComponent("ClothingImages", isDirectory: true)
+        
+        // Config cache limits
+        cache.countLimit = 100
+        cache.totalCostLimit = 1024 * 1024 * 100 // 100 MB
         
         // Create the directory if it doesn't exist
         if !fileManager.fileExists(atPath: imageDirectory.path) {
@@ -22,31 +28,57 @@ class ImageStorageService {
     
     /// Save an image with compression and return the UUID
     func saveImage(_ image: UIImage, withID id: UUID = UUID()) -> UUID? {
+        // Cache immediately
+        cache.setObject(image, forKey: id.uuidString as NSString)
+        
         guard let data = image.jpegData(compressionQuality: 0.8) else {
             return nil
         }
         
         let fileURL = imageDirectory.appendingPathComponent("\(id.uuidString).jpg")
         
-        do {
-            try data.write(to: fileURL)
-            return id
-        } catch {
-            print("Error saving image: \(error)")
-            return nil
+        ioQueue.async {
+            try? data.write(to: fileURL)
+        }
+        return id
+    }
+    
+    /// Load an image by its UUID (Async)
+    func loadImage(withID id: UUID) async -> UIImage? {
+        let key = id.uuidString as NSString
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        
+        return await withCheckedContinuation { continuation in
+            ioQueue.async {
+                let fileURL = self.imageDirectory.appendingPathComponent("\(id.uuidString).jpg")
+                if let data = try? Data(contentsOf: fileURL),
+                   let image = UIImage(data: data) {
+                    // Cache and return
+                    self.cache.setObject(image, forKey: key)
+                    continuation.resume(returning: image)
+                } else {
+                    continuation.resume(returning: nil)
+                }
+            }
         }
     }
     
-    /// Load an image by its UUID
+    /// Load an image by its UUID (Legacy Sync for compatibility)
     func loadImage(withID id: UUID) -> UIImage? {
-        let fileURL = imageDirectory.appendingPathComponent("\(id.uuidString).jpg")
+        let key = id.uuidString as NSString
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
         
-        guard fileManager.fileExists(atPath: fileURL.path),
-              let data = try? Data(contentsOf: fileURL),
+        let fileURL = imageDirectory.appendingPathComponent("\(id.uuidString).jpg")
+        guard let data = try? Data(contentsOf: fileURL),
               let image = UIImage(data: data) else {
             return nil
         }
         
+        cache.setObject(image, forKey: key)
         return image
     }
     

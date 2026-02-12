@@ -343,7 +343,12 @@ struct ItemDetailView: View {
     }
     
     private func loadImage() {
-        itemImage = ImageStorageService.shared.loadImage(withID: item.imageID)
+        Task {
+            let loaded = await ImageStorageService.shared.loadImage(withID: item.imageID)
+            await MainActor.run {
+                self.itemImage = loaded
+            }
+        }
     }
     
     private func startEditing() {
