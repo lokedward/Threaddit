@@ -271,68 +271,52 @@ class StylistService {
     // MARK: - API Calls (Stitching Implementation)
     
     private func callStitchingAPI(garments: [UIImage], gender: Gender) async throws -> Data {
-        // Build URL with API key as query parameter for Generative Language API
-        // or use the standard URL if it's a Vertex AI endpoint
         let isVertex = AppConfig.imagenEndpoint.contains("aiplatform.googleapis.com")
         
         var urlComponents = URLComponents(string: AppConfig.imagenEndpoint)
-        if !isVertex {
-            // AI Studio keys usually go in query params
-            urlComponents?.queryItems = [URLQueryItem(name: "key", value: AppConfig.googleAPIKey)]
-        }
         
+        // Setup request
         guard let url = urlComponents?.url else {
             throw StylistError.invalidEndpoint
-        }
-        
-        // Convert garments to Base64 for the API
-        let garmentData = garments.compactMap { $0.jpegData(compressionQuality: 0.8)?.base64EncodedString() }
-        
-        // Construct the payload. 
-        // Note: For "Stitching" (Virtual Try On), the API typically expects a base 'person_image' 
-        // to stitch garments ONTO. Since we don't have a selfie yet, we use a placeholder 
-        // model based on gender.
-        
-        let requestBody: [String: Any]
-        if AppConfig.imagenEndpoint.contains("virtual-try-on") {
-            // Official Virtual Try On Format
-            requestBody = [
-                "instances": [
-                    [
-                        "person_image": ["bytesBase64Encoded": ""], // We need a base model image here
-                        "garment_image": ["bytesBase64Encoded": garmentData.first ?? ""]
-                    ]
-                ]
-            ]
-        } else {
-            // standard Imagen 3 format with multi-image signals if supported
-            requestBody = [
-                "instances": [
-                    [
-                        "prompt": "A professional fashion photography shot of a \(gender == .female ? "female" : "male") model wearing these specific items: \(garments.count) separate garments. Photorealistic, 8k, studio lighting.",
-                        "image": ["bytesBase64Encoded": garmentData.first ?? ""] // If using as reference
-                    ]
-                ],
-                "parameters": [
-                    "sampleCount": 1,
-                    "aspectRatio": "3:4"
-                ]
-            ]
-        }
-        
-        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
-            throw StylistError.invalidRequest
         }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
+        // 🔐 Authentication Logic
+        // Google Cloud (Vertex) and Google AI Studio (Generative Language) have different auth requirements
         if isVertex {
-            // Vertex AI uses Bearer tokens (OAuth)
-            request.setValue("Bearer \(AppConfig.googleAPIKey)", forHTTPHeaderField: "Authorization")
+            // For Vertex AI, if you're using an API Key (AIza...) it should be in the header
+            request.setValue(AppConfig.googleAPIKey, forHTTPHeaderField: "x-goog-api-key")
+        } else {
+            // For Generative Language API, we put it in the query param
+            urlComponents?.queryItems = [URLQueryItem(name: "key", value: AppConfig.googleAPIKey)]
+            if let updatedURL = urlComponents?.url {
+                request.url = updatedURL
+            }
         }
         
+        // Convert garments to Base64
+        let garmentData = garments.compactMap { $0.jpegData(compressionQuality: 0.8)?.base64EncodedString() }
+        
+        // Payload construction (Simplified for testing)
+        let requestBody: [String: Any] = [
+            "instances": [
+                [
+                    "prompt": "Professional fashion photography, \(gender == .female ? "female" : "male") model, high-end studio.",
+                    "image": ["bytesBase64Encoded": garmentData.first ?? ""]
+                ]
+            ],
+            "parameters": [
+                "sampleCount": 1,
+                "aspectRatio": "3:4"
+            ]
+        ]
+        
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
+            throw StylistError.invalidRequest
+        }
         request.httpBody = jsonData
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -340,9 +324,13 @@ class StylistService {
         if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
             print("❌ API Error \(httpResponse.statusCode)")
             if let errorString = String(data: data, encoding: .utf8) {
-                print("📝 Response: \(errorString)")
+                print("📝 Response Body: \(errorString)")
             }
-            throw StylistError.apiError("Google API returned status \(httpResponse.statusCode). Check your endpoint/key.")
+            
+            if httpResponse.statusCode == 401 {
+                throw StylistError.apiError("Authentication failed. If using Vertex AI, ensure your API key has 'Vertex AI API' enabled in Google Cloud Console.")
+            }
+            throw StylistError.apiError("Google API Error: \(httpResponse.statusCode)")
         }
         
         // Parse result (assuming standard Image generation response)
