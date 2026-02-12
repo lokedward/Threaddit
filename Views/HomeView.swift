@@ -19,6 +19,12 @@ struct HomeView: View {
         categories.allSatisfy { $0.items.isEmpty }
     }
     
+    private var sortedCategories: [Category] {
+        let active = categories.filter { !$0.items.isEmpty }
+        let empty = categories.filter { $0.items.isEmpty }
+        return active + empty
+    }
+    
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
             PoshTheme.Colors.canvas.ignoresSafeArea()
@@ -48,8 +54,17 @@ struct HomeView: View {
                             }
                             .padding(.horizontal)
 
-                            ForEach(categories) { category in
+                            ForEach(Array(sortedCategories.enumerated()), id: \.element.id) { index, category in
                                 CategoryShelfView(category: category, selectedTab: $selectedTab)
+                                
+                                if index < sortedCategories.count - 1 {
+                                    Rectangle()
+                                        .fill(PoshTheme.Colors.gold) // Assuming this exists, based on "gilded" request and theme context
+                                        .frame(height: 1)
+                                        .opacity(0.2) // Subtle
+                                        .padding(.horizontal)
+                                        .padding(.vertical, 8)
+                                }
                             }
                         }
                         
