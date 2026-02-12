@@ -3,7 +3,7 @@
 
 import Foundation
 import SwiftUI
-import Combine
+internal import Combine
 
 class StylistService {
     static let shared = StylistService()
@@ -209,9 +209,4 @@ enum StylistError: LocalizedError {
             return "You've reached your daily limit of 3 outfits. Upgrade to Premium for unlimited looks!"
         }
     }
-}
-
-enum GenerationTier {
-    case free
-    case premium
 }
