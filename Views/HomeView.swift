@@ -34,11 +34,6 @@ struct HomeView: View {
             } else {
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: 32) {
-                        // Favorite Looks Shelf
-                        if !outfits.isEmpty {
-                            favoritesShelf
-                        }
-                        
                         // Closet Section
                         VStack(spacing: 24) {
                             HStack {
@@ -58,6 +53,18 @@ struct HomeView: View {
                                 }
                             }
                             .padding(.horizontal)
+
+                            // Favorite Looks Shelf (First in List)
+                            if !outfits.isEmpty {
+                                favoritesShelf
+                                
+                                Rectangle()
+                                    .fill(PoshTheme.Colors.gold)
+                                    .frame(height: 1)
+                                    .opacity(0.2)
+                                    .padding(.horizontal)
+                                    .padding(.vertical, 8)
+                            }
 
                             ForEach(Array(sortedCategories.enumerated()), id: \.element.id) { index, category in
                                 CategoryShelfView(category: category, selectedTab: $selectedTab)

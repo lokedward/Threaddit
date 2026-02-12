@@ -23,6 +23,7 @@ struct ContentView: View {
         // Item colors
         // Manually defining UIColors to avoid SwiftUI bridging issues in init
         let gold = PoshTheme.Colors.uiGold
+        let ink = PoshTheme.Colors.uiInk
         let unselectedInk = PoshTheme.Colors.uiInk.withAlphaComponent(0.3)
         
         let itemAppearance = UITabBarItemAppearance()
@@ -30,7 +31,7 @@ struct ContentView: View {
         itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselectedInk]
         
         itemAppearance.selected.iconColor = gold
-        itemAppearance.selected.titleTextAttributes = [.foregroundColor: gold]
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: ink]
         
         appearance.stackedLayoutAppearance = itemAppearance
         appearance.inlineLayoutAppearance = itemAppearance
