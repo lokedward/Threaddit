@@ -1,19 +1,17 @@
 // StylistService.swift
-// AI styling and image generation with multi-provider support
+// AI styling using Gemini 2.0 Flash for both vision and image generation
 
 import Foundation
 import SwiftUI
-internal import Combine 
+import Combine
 
 class StylistService {
     static let shared = StylistService()
-    
     private init() {}
     
     // MARK: - Usage Tracking
-    
     @AppStorage("dailyGenerationCount") private var dailyGenerationCount: Int = 0
-    @AppStorage("lastResetDate") private var lastResetDate: String = "" // "yyyy-MM-dd"
+    @AppStorage("lastResetDate") private var lastResetDate: String = ""
     @AppStorage("userTier") private var userTierRaw: String = "free"
     
     var userTier: GenerationTier {
@@ -22,10 +20,145 @@ class StylistService {
     }
     
     var generationsRemaining: Int? {
-        let limit = userTier == .premium ? 50 : 3 // Daily limits
+        let limit = userTier == .premium ? 50 : 3
         resetCountIfNeeded()
         return max(0, limit - dailyGenerationCount)
     }
+    
+    // MARK: - Core Pipeline
+    
+    func generateModelPhoto(items: [ClothingItem], gender: Gender) async throws -> UIImage {
+        guard !items.isEmpty else { throw StylistError.noItemsSelected }
+        
+        // Check usage limits
+        if let remaining = generationsRemaining, remaining <= 0 {
+            throw StylistError.limitReached
+        }
+        
+        // 1. Prepare Images
+        var garmentImages: [Data] = []
+        for item in items {
+            if let img = ImageStorageService.shared.loadImage(withID: item.imageID),
+               let data = img.jpegData(compressionQuality: 0.7) {
+                garmentImages.append(data)
+            }
+        }
+        guard !garmentImages.isEmpty else { throw StylistError.invalidImageData }
+        
+        // 2. Step A: Vision Analysis (Gemini 2.0 Flash)
+        let description = try await analyzeGarments(images: garmentImages)
+        
+        // 3. Step B: Image Generation (Gemini 2.0 Flash)
+        let resultImage = try await generateImage(description: description, gender: gender)
+        
+        incrementGenerationCount()
+        return resultImage
+    }
+    
+    // MARK: - Step A: Vision (See the Clothes)
+    
+    private func analyzeGarments(images: [Data]) async throws -> String {
+        let prompt = """
+        Analyze these clothing items images. Create a single, highly detailed visual description suitable for an AI image generator.
+        Focus on fabrics, textures, exact colors, necklines, sleeve lengths, and fit.
+        Do not describe the background, hangers, or any person. Just describe the clothes as if worn together as an outfit.
+        """
+        
+        return try await callGemini(prompt: prompt, images: images, responseType: .text)
+    }
+    
+    // MARK: - Step B: Generation (Create the Look)
+    
+    private func generateImage(description: String, gender: Gender) async throws -> UIImage {
+        let genderTerm = gender == .female ? "female" : "male"
+        
+        let fullPrompt = """
+        Generate a photorealistic, full-body editorial fashion photograph of a 5'6" \(genderTerm) model.
+        The model is wearing this specific outfit: \(description).
+        
+        Setting: Neutral grey studio background.
+        Lighting: Soft, cinematic, professional studio lighting.
+        Style: 8k resolution, highly detailed texture, realistic proportions.
+        """
+        
+        let base64String = try await callGemini(prompt: fullPrompt, images: nil, responseType: .image)
+        
+        guard let data = Data(base64Encoded: base64String), let image = UIImage(data: data) else {
+            throw StylistError.invalidImageData
+        }
+        return image
+    }
+    
+    // MARK: - Universal API Caller (Gemini 2.0 Flash)
+    
+    private enum ResponseType { case text, image }
+    
+    private func callGemini(prompt: String, images: [Data]?, responseType: ResponseType) async throws -> String {
+        let model = "gemini-2.0-flash"
+        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(AppConfig.googleAPIKey)"
+        
+        guard let url = URL(string: urlString) else { throw StylistError.invalidEndpoint }
+        
+        // Construct Request
+        var parts: [[String: Any]] = [ ["text": prompt] ]
+        
+        if let images = images {
+            for imgData in images {
+                parts.append([
+                    "inline_data": [
+                        "mime_type": "image/jpeg",
+                        "data": imgData.base64EncodedString()
+                    ]
+                ])
+            }
+        }
+        
+        let requestBody: [String: Any] = [
+            "contents": [ ["parts": parts] ]
+        ]
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // 🛡️ Add Bundle ID header to satisfy Google Cloud restrictions
+        if let bundleID = Bundle.main.bundleIdentifier {
+            request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
+        }
+        
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResp = response as? HTTPURLResponse else { throw StylistError.invalidResponse }
+        
+        if httpResp.statusCode != 200 {
+            print("Gemini API Error (\(httpResp.statusCode)): \(String(data: data, encoding: .utf8) ?? "Unknown")")
+            throw StylistError.apiError("Generation failed (Status \(httpResp.statusCode))")
+        }
+        
+        // Parse Response
+        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let candidates = json["candidates"] as? [[String: Any]],
+              let content = candidates.first?["content"] as? [String: Any],
+              let partsResp = content["parts"] as? [[String: Any]],
+              let firstPart = partsResp.first else {
+            throw StylistError.invalidResponse
+        }
+        
+        if responseType == .text {
+            return firstPart["text"] as? String ?? ""
+        } else {
+            // Image Generation returns 'inline_data'
+            if let inlineData = firstPart["inline_data"] as? [String: Any],
+               let b64 = inlineData["data"] as? String {
+                return b64
+            }
+            throw StylistError.apiError("No image data returned")
+        }
+    }
+    
+    // MARK: - Helpers
     
     private func resetCountIfNeeded() {
         let currentDay = currentDayKey()
@@ -44,187 +177,6 @@ class StylistService {
     private func incrementGenerationCount() {
         resetCountIfNeeded()
         dailyGenerationCount += 1
-    }
-    
-    // MARK: - Layering Logic
-    
-    /// Determines the z-index/order for an item based on its category
-    func layeringOrder(for item: ClothingItem) -> Int {
-        guard let categoryName = item.category?.name.lowercased() else { return 0 }
-        
-        // Lower numbers are back, higher are front
-        if categoryName.contains("under") || categoryName.contains("base") {
-            return 10
-        } else if categoryName.contains("pant") || categoryName.contains("skirt") || categoryName.contains("jean") {
-            return 20
-        } else if categoryName.contains("top") || categoryName.contains("shirt") || categoryName.contains("blouse") {
-            return 30
-        } else if categoryName.contains("dress") {
-            return 35
-        } else if categoryName.contains("outer") || categoryName.contains("jacket") || categoryName.contains("coat") {
-            return 40
-        } else if categoryName.contains("shoe") || categoryName.contains("boot") {
-            return 50
-        } else if categoryName.contains("access") || categoryName.contains("bag") || categoryName.contains("hat") {
-            return 60
-        }
-        
-        return 0
-    }
-    
-    // MARK: - AI Generation (Two-Step Pipeline)
-    
-    /// Generate a cohesive outfit photo using Gemini Vision for analysis and Imagen for generation
-    func generateModelPhoto(items: [ClothingItem], gender: Gender) async throws -> UIImage {
-        guard !items.isEmpty else { throw StylistError.noItemsSelected }
-        
-        // Check usage limits
-        if let remaining = generationsRemaining, remaining <= 0 {
-            throw StylistError.limitReached
-        }
-        
-        // 1. Prepare Image Data for Vision Analysis
-        var imageParts: [Data] = []
-        for item in items {
-            if let image = ImageStorageService.shared.loadImage(withID: item.imageID),
-               let jpegData = image.jpegData(compressionQuality: 0.8) {
-                imageParts.append(jpegData)
-            }
-        }
-        
-        guard !imageParts.isEmpty else { throw StylistError.invalidImageData }
-        
-        // 2. Step 1: Vision Analysis (Gemini 1.5 Pro)
-        let visionPrompt = """
-        Analyze these clothing items. Create a single, highly detailed visual description suitable for an AI image generator. 
-        Focus on specific fabrics, textures, necklines, sleeve lengths, patterns, and fit. 
-        Do not describe the background or any person. Just describe the clothes as if worn together.
-        """
-        
-        let garmentDescription = try await callGeminiVision(prompt: visionPrompt, images: imageParts)
-        
-        // 3. Step 2: Image Generation (Imagen 3)
-        let modelDescription = "generic 5'6\" \(gender == .female ? "female" : "male") fashion model"
-        let fullPrompt = """
-        Professional full-body editorial studio photography of a \(modelDescription) wearing: \(garmentDescription).
-        
-        The model is standing in a neutral pose against a soft grey studio background. 
-        Lighting is cinematic and soft. 8k resolution, photorealistic, highly detailed texture.
-        """
-        
-        let generatedImageData = try await callGeminiImagen(prompt: fullPrompt)
-        
-        guard let image = UIImage(data: generatedImageData) else {
-            throw StylistError.invalidImageData
-        }
-        
-        incrementGenerationCount()
-        return image
-    }
-    
-    // MARK: - Private API Callers
-    
-    /// Step 1: The Eye (Gemini 1.5 Pro) - Analyzes images to create description
-    private func callGeminiVision(prompt: String, images: [Data]) async throws -> String {
-        let model = "gemini-1.5-pro"
-        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(model):generateContent?key=\(AppConfig.googleAPIKey)"
-        guard let url = URL(string: urlString) else { throw StylistError.invalidEndpoint }
-        
-        // Construct Multipart Content (Text + Images)
-        var parts: [[String: Any]] = [
-            ["text": prompt]
-        ]
-        
-        for imageData in images {
-            parts.append([
-                "inline_data": [
-                    "mime_type": "image/jpeg",
-                    "data": imageData.base64EncodedString()
-                ]
-            ])
-        }
-        
-        let body: [String: Any] = [
-            "contents": [
-                ["parts": parts]
-            ]
-        ]
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 🛡️ Add Bundle ID header to satisfy Google Cloud restrictions
-        if let bundleID = Bundle.main.bundleIdentifier {
-            request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
-        }
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
-            print("Vision Error: \(String(data: data, encoding: .utf8) ?? "Unknown")")
-            throw StylistError.apiError("Vision API Failed: \( (response as? HTTPURLResponse)?.statusCode ?? 0)")
-        }
-        
-        // Parse the text response
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let candidates = json["candidates"] as? [[String: Any]],
-              let content = candidates.first?["content"] as? [String: Any],
-              let partsResponse = content["parts"] as? [[String: Any]],
-              let text = partsResponse.first?["text"] as? String else {
-            throw StylistError.invalidResponse
-        }
-        
-        return text
-    }
-    
-    /// Step 2: The Brush (Imagen 3) - Generates photo from description
-    private func callGeminiImagen(prompt: String) async throws -> Data {
-        let model = "imagen-3.0-generate-001"
-        let urlString = "https://generativelanguage.googleapis.com/v1beta/models/\(model):predict?key=\(AppConfig.googleAPIKey)"
-        
-        guard let url = URL(string: urlString) else { throw StylistError.invalidEndpoint }
-        
-        let body: [String: Any] = [
-            "instances": [
-                ["prompt": prompt]
-            ],
-            "parameters": [
-                "sampleCount": 1,
-                "aspectRatio": "3:4"
-            ]
-        ]
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        // 🛡️ Add Bundle ID header to satisfy Google Cloud restrictions
-        if let bundleID = Bundle.main.bundleIdentifier {
-            request.setValue(bundleID, forHTTPHeaderField: "X-Ios-Bundle-Identifier")
-        }
-        
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResp = response as? HTTPURLResponse, httpResp.statusCode == 200 else {
-            print("Imagen Error: \(String(data: data, encoding: .utf8) ?? "Unknown")")
-            throw StylistError.apiError("Image Generation Failed: \( (response as? HTTPURLResponse)?.statusCode ?? 0)")
-        }
-        
-        // Parse Base64 Image Response
-        guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              let predictions = json["predictions"] as? [[String: Any]],
-              let first = predictions.first,
-              let b64 = first["bytesBase64Encoded"] as? String,
-              let imageData = Data(base64Encoded: b64) else {
-            throw StylistError.invalidImageData
-        }
-        
-        return imageData
     }
 }
 
@@ -246,15 +198,20 @@ enum StylistError: LocalizedError {
         case .invalidImageData:
             return "Could not process the garment images"
         case .invalidEndpoint:
-            return "Stitching API misconfigured"
+            return "Generation API misconfigured"
         case .invalidRequest:
-            return "Failed to create stitching request"
+            return "Failed to create generation request"
         case .invalidResponse:
             return "Invalid response from outfit generator"
         case .apiError(let message):
             return message
         case .limitReached:
-            return "You've reached your daily limit of 3 outfits. Upgrade to Premium for unlimted looks!"
+            return "You've reached your daily limit of 3 outfits. Upgrade to Premium for unlimited looks!"
         }
     }
+}
+
+enum GenerationTier {
+    case free
+    case premium
 }
