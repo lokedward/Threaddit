@@ -67,24 +67,27 @@ struct StylingCanvasView: View {
                 }
             } else if isGenerating {
                 // Loading state
-                VStack(spacing: 20) {
+                VStack(spacing: 24) {
                     ProgressView()
-                        .scaleEffect(1.5)
+                        .scaleEffect(1.2)
                         .tint(PoshTheme.Colors.ink)
                     
-                    Text("GENERATING YOUR LOOK...")
-                        .font(.system(size: 12, weight: .bold))
-                        .tracking(2)
-                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
-                    
-                    Text(stylistService.userTier == .free ? "Using 3 daily free generations" : "Using premium quality")
-                        .poshBody(size: 12)
-                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                    VStack(spacing: 8) {
+                        Text("CREATING YOUR LOOK")
+                            .font(.system(size: 12, weight: .bold))
+                            .tracking(3)
+                            .foregroundColor(PoshTheme.Colors.ink)
+                        
+                        Text(stylistService.userTier == .free ? "Using 1 of 10 daily generations" : "Premium quality generation")
+                            .font(.system(size: 10, weight: .light))
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
+                    }
                 }
-                .padding()
-                .background(.ultraThinMaterial)
-                .cornerRadius(20)
+                .padding(.vertical, 40)
+                .padding(.horizontal, 32)
+                .background(PoshTheme.Colors.stone)
                 .poshCard()
+                .transition(.opacity.combined(with: .scale(scale: 0.9)))
             } else {
                 // Ready to generate - show mannequin + button
                 VStack {

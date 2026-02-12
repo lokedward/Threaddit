@@ -186,7 +186,10 @@ struct AddItemView: View {
         brand = ""
         size = ""
         tagsText = ""
-        selectedCategory = categories.first
+        // Only reset category if it's currently nil, preserving the last used category for efficiency
+        if selectedCategory == nil {
+            selectedCategory = categories.first
+        }
     }
 
     private func saveItem() {
@@ -225,9 +228,10 @@ struct AddItemView: View {
                             size = ""
                             tagsText = ""
                             // Keep category as is for bulk speed? Or reset?
-                            withAnimation { isMetadataExpanded = false }
+                            withAnimation { isMetadataExpanded = true }
                             if bulkImageQueue.isEmpty {
-                                additionMode = .single
+                                // Instead of resetting to single, we stay in the mode the user chose
+                                // but we clear the form for the next potential entry
                                 resetForm()
                             }
                         }
