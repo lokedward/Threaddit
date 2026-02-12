@@ -273,7 +273,7 @@ struct EmailImportView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(PoshTheme.Colors.canvas)
-        .fullScreenCover(isPresented: $showingBulkAddFlow, onDismiss: { dismiss() }) {
+        .fullScreenCover(isPresented: $showingBulkAddFlow) {
             AddItemView(prefilledItems: importedItems)
         }
     }

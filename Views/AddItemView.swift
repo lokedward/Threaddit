@@ -100,6 +100,15 @@ struct AddItemView: View {
                 ToolbarItem(placement: .principal) {
                     Text(additionMode == .single ? "New Item" : "Bulk Upload").poshHeadline(size: 18)
                 }
+                
+                if prefilledItems != nil {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button("Close") {
+                            dismiss()
+                        }
+                        .foregroundColor(PoshTheme.Colors.ink)
+                    }
+                }
             }
             // Modifiers decoupled here
             .modifier(AddItemPickerModifiers(
