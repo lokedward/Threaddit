@@ -62,13 +62,20 @@ class StylistService {
         }
         
         // 4. Step B: Image Generation (Gemini 2.5 Flash Image)
-        let resultImage = try await generateImage(description: description, gender: gender)
-        
-        // Cache the final result
-        OutfitCacheService.shared.cacheImage(resultImage, for: items, gender: gender)
-        
-        incrementGenerationCount()
-        return resultImage
+        do {
+            let resultImage = try await generateImage(description: description, gender: gender)
+            
+            // Cache the final result
+            OutfitCacheService.shared.cacheImage(resultImage, for: items, gender: gender)
+            
+            incrementGenerationCount()
+            return resultImage
+        } catch {
+            print("❌ Image generation failed with error: \(error.localizedDescription)")
+            print("⚠️ Invalidating cached description to force regeneration next time.")
+            OutfitCacheService.shared.invalidateDescription(for: items, gender: gender)
+            throw error
+        }
     }
     
     private func analyzeGarments(images: [Data]) async throws -> String {

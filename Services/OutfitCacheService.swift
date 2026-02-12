@@ -53,6 +53,12 @@ class OutfitCacheService {
         saveDescriptions()
     }
     
+    func invalidateDescription(for items: [ClothingItem], gender: Gender) {
+        let key = generateKey(for: items, gender: gender)
+        descriptionCache.removeValue(forKey: key)
+        saveDescriptions()
+    }
+    
     // MARK: - Image Cache
     
     func getCachedImage(for items: [ClothingItem], gender: Gender) -> UIImage? {
