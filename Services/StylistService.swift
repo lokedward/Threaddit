@@ -96,7 +96,7 @@ class StylistService {
         
         // Build the stitching request
         // Note: For Imagen 3 "Stitching" (Nanobanana), we typically send garments as auxiliary inputs
-        let imageData: Data = try await callStitchingAPI(garments: garmentImages, gender: gender)
+        let imageData: Data = try await callStitchingAPI(items: items, gender: gender)
         
         guard let image = UIImage(data: imageData) else {
             throw StylistError.invalidImageData
@@ -270,53 +270,38 @@ class StylistService {
     
     // MARK: - API Calls (Stitching Implementation)
     
-    private func callStitchingAPI(garments: [UIImage], gender: Gender) async throws -> Data {
-        let isVertex = AppConfig.imagenEndpoint.contains("aiplatform.googleapis.com")
-        
+    private func callStitchingAPI(items: [ClothingItem], gender: Gender) async throws -> Data {
+        // Build URL with API key as query parameter (AI Studio standard)
         var urlComponents = URLComponents(string: AppConfig.imagenEndpoint)
+        urlComponents?.queryItems = [URLQueryItem(name: "key", value: AppConfig.googleAPIKey)]
         
-        // Setup request
         guard let url = urlComponents?.url else {
             throw StylistError.invalidEndpoint
         }
         
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        // 🧪 For "stitching" in AI Studio (Imagen 3), we use a rich prompt strategy.
+        let prompt = buildPrompt(for: items, gender: gender)
         
-        // 🔐 Authentication Logic
-        // Google Cloud (Vertex) and Google AI Studio (Generative Language) have different auth requirements
-        if isVertex {
-            // For Vertex AI, if you're using an API Key (AIza...) it should be in the header
-            request.setValue(AppConfig.googleAPIKey, forHTTPHeaderField: "x-goog-api-key")
-        } else {
-            // For Generative Language API, we put it in the query param
-            urlComponents?.queryItems = [URLQueryItem(name: "key", value: AppConfig.googleAPIKey)]
-            if let updatedURL = urlComponents?.url {
-                request.url = updatedURL
-            }
-        }
-        
-        // Convert garments to Base64
-        let garmentData = garments.compactMap { $0.jpegData(compressionQuality: 0.8)?.base64EncodedString() }
-        
-        // Payload construction (Simplified for testing)
         let requestBody: [String: Any] = [
             "instances": [
                 [
-                    "prompt": "Professional fashion photography, \(gender == .female ? "female" : "male") model, high-end studio.",
-                    "image": ["bytesBase64Encoded": garmentData.first ?? ""]
+                    "prompt": prompt
                 ]
             ],
             "parameters": [
                 "sampleCount": 1,
-                "aspectRatio": "3:4"
+                "aspectRatio": "3:4",
+                "personGeneration": "allow" // Important for models
             ]
         ]
         
         guard let jsonData = try? JSONSerialization.data(withJSONObject: requestBody) else {
             throw StylistError.invalidRequest
         }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = jsonData
         
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -326,14 +311,10 @@ class StylistService {
             if let errorString = String(data: data, encoding: .utf8) {
                 print("📝 Response Body: \(errorString)")
             }
-            
-            if httpResponse.statusCode == 401 {
-                throw StylistError.apiError("Authentication failed. If using Vertex AI, ensure your API key has 'Vertex AI API' enabled in Google Cloud Console.")
-            }
-            throw StylistError.apiError("Google API Error: \(httpResponse.statusCode)")
+            throw StylistError.apiError("Google AI Studio error: \(httpResponse.statusCode). Please verify your API Key and Imagen 3 access.")
         }
         
-        // Parse result (assuming standard Image generation response)
+        // Parse result
         guard let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               let predictions = json["predictions"] as? [[String: Any]],
               let first = predictions.first,
