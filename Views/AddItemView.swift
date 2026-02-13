@@ -10,6 +10,7 @@ struct AddItemView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Query(sort: \Category.displayOrder) private var categories: [Category]
+    @Query private var items: [ClothingItem]
     
     enum AdditionMode: String, CaseIterable {
         case single = "SINGLE"
