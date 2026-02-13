@@ -168,16 +168,25 @@ struct PaywallView: View {
     }
     
     private var footerSection: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 12) {
             Text("SECURE PAYMENT VIA APP STORE")
                 .font(.system(size: 9, weight: .bold))
                 .tracking(1)
                 .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
             
-            Text("Restore Purchases")
-                .font(.system(size: 11, weight: .medium))
-                .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
-                .underline()
+            HStack(spacing: 24) {
+                Button {
+                    // Restore logic would go here
+                } label: {
+                    Text("Restore Purchases")
+                        .underline()
+                }
+                
+                Link("Privacy Policy", destination: URL(string: "https://www.threadlist.app/privacy")!)
+                Link("Terms of Service", destination: URL(string: "https://www.threadlist.app/terms")!)
+            }
+            .font(.system(size: 11, weight: .medium))
+            .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
         }
     }
 }

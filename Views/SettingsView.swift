@@ -238,14 +238,24 @@ struct SettingsView: View {
                         .padding(.horizontal)
                         
                         // About
-                        VStack(spacing: 8) {
-                            Text("THREADLIST")
-                                .font(.system(size: 12, weight: .bold))
-                                .tracking(3)
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
-                            Text("VERSION 1.0.0")
-                                .font(.system(size: 10, weight: .medium))
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                        VStack(spacing: 12) {
+                            VStack(spacing: 4) {
+                                Text("THREADLIST")
+                                    .font(.system(size: 12, weight: .bold))
+                                    .tracking(3)
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
+                                Text("VERSION 1.0.0")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                            }
+                            
+                            HStack(spacing: 20) {
+                                Link("PRIVACY", destination: URL(string: "https://www.threadlist.app/privacy")!)
+                                Link("TERMS", destination: URL(string: "https://www.threadlist.app/terms")!)
+                            }
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(PoshTheme.Colors.gold)
                         }
                         .padding(.top, 40)
                     }
