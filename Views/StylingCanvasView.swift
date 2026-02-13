@@ -51,7 +51,7 @@ struct StylingCanvasView: View {
                             VStack(spacing: 4) {
                                 Image(systemName: "arrow.triangle.2.circlepath")
                                     .font(.system(size: 20))
-                                Text("RETRY")
+                                Text("TRY NEW LOOK")
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(1.5)
                             }

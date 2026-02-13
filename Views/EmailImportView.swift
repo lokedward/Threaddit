@@ -26,6 +26,13 @@ struct EmailImportView: View {
                 introductionView
             }
         }
+        .onChange(of: showingBulkAddFlow) { oldValue, newValue in
+            // If we were showing the bulk flow and now we're not, 
+            // it means the user either finished or cancelled, so we should return to main navigation.
+            if oldValue == true && newValue == false {
+                dismiss()
+            }
+        }
         .alert("Upgrade Required", isPresented: $showingUpgradePrompt) {
             Button("Upgrade to Premium") {
                 // TODO: Navigate to subscription screen
@@ -221,32 +228,7 @@ struct EmailImportView: View {
             }
             .padding(.bottom, 10)
             
-            // Debug List - Names Only
-            List(0..<importedItems.count, id: \.self) { index in
-                let item = importedItems[index]
-                HStack(alignment: .top, spacing: 12) {
-                    Text("\(index + 1).")
-                        .font(.system(size: 12, weight: .bold))
-                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
-                        .frame(width: 24, alignment: .trailing)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(item.name)
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(PoshTheme.Colors.headline)
-                        
-                        if let brand = item.brand {
-                            Text(brand)
-                                .font(.system(size: 12))
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
-                        }
-                    }
-                }
-                .listRowSeparator(.hidden)
-                .padding(.vertical, 8)
-            }
-            .listStyle(.plain)
-            .background(PoshTheme.Colors.canvas)
+            Spacer()
             
             // Actions
             VStack(spacing: 16) {
