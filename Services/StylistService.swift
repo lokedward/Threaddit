@@ -11,7 +11,7 @@ class StylistService {
     
     // Limit checks are now handled via SubscriptionService.shared
     var generationsRemaining: Int? {
-        let limit = SubscriptionService.shared.currentTier.dailyStyleMeLimit
+        let limit = SubscriptionService.shared.currentTier.styleMeLimit
         return max(0, limit - SubscriptionService.shared.generationCount)
     }
     
