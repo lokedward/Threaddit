@@ -69,6 +69,18 @@ enum ModelHeight: String, CaseIterable, Identifiable {
     }
 }
 
+enum StylistOccasion: String, CaseIterable, Identifiable {
+    case casual = "Casual"
+    case professional = "Professional"
+    case dateNight = "Date Night"
+    case formal = "Formal/Wedding"
+    case vacation = "Vacation"
+    case gym = "Athletic/Gym"
+    case custom = "Custom..."
+    
+    var id: String { rawValue }
+}
+
 // MARK: - Settings View
 
 struct StylistSettingsView: View {
@@ -77,11 +89,15 @@ struct StylistSettingsView: View {
     @AppStorage("stylistSkinTone") private var skinToneRaw = SkinTone.medium.rawValue
     @AppStorage("stylistModelHeight") private var heightRaw = ModelHeight.average.rawValue
     
+    @AppStorage("stylistOccasion") private var occasionRaw = StylistOccasion.casual.rawValue
+    @AppStorage("stylistCustomOccasion") private var customOccasion = ""
+    
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
             Form {
+                stylingOccasionSection
                 modelProfileSection
                 appearanceSection
                 footerSection
@@ -99,6 +115,26 @@ struct StylistSettingsView: View {
                 }
             }
         }
+    }
+    
+    private var stylingOccasionSection: some View {
+        Section("Target Occasion") {
+            Picker("Occasion", selection: $occasionRaw) {
+                ForEach(StylistOccasion.allCases) { occasion in
+                    Text(occasion.rawValue).tag(occasion.rawValue)
+                }
+            }
+            
+            if occasionRaw == StylistOccasion.custom.rawValue {
+                TextField("E.g. 90s Disco Party", text: $customOccasion)
+                    .font(.system(size: 15))
+            }
+            
+            Text("The Stylist will prioritize items in your closet that fit this vibe.")
+                .font(.caption2)
+                .foregroundColor(.secondary)
+        }
+        .listRowBackground(Color.white)
     }
     
     private var modelProfileSection: some View {

@@ -573,6 +573,8 @@ struct BulkEmptyStateView: View {
 }
 
 struct ProcessingOverlayView: View {
+    var message: String = "PROCESSING GARMENTS"
+    
     var body: some View {
         ZStack {
             // Soft dimming that matches our brand colors
@@ -584,7 +586,7 @@ struct ProcessingOverlayView: View {
                     .scaleEffect(1.2)
                     .tint(PoshTheme.Colors.ink)
                 
-                Text("PROCESSING GARMENTS")
+                Text(message)
                     .font(.system(size: 11, weight: .bold))
                     .tracking(3)
                     .foregroundColor(PoshTheme.Colors.ink)

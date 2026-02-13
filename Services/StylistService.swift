@@ -72,6 +72,58 @@ class StylistService {
         return try JSONDecoder().decode(GarmentMetadata.self, from: jsonData)
     }
     
+    // MARK: - Occasion-Based Selection
+    
+    func suggestOutfit(for occasion: String, availableItems: [ClothingItem]) async throws -> Set<UUID> {
+        guard !availableItems.isEmpty else { return [] }
+        
+        // 1. Prepare Wardrobe Summary
+        let itemsInfo = availableItems.map { item in
+            """
+            - [ID: \(item.id.uuidString)]
+              Name: \(item.name)
+              Category: \(item.category?.name ?? "Unknown")
+              Brand: \(item.brand ?? "N/A")
+              Tags: \(item.tags.joined(separator: ", "))
+            """
+        }.joined(separator: "\n")
+        
+        // 2. Build Prompt
+        let prompt = """
+        You are a high-end personal stylist. 
+        Target Occasion: \(occasion)
+        
+        Below is the user's closet (metadata only). 
+        Pick the BEST combination of items for this occasion. 
+        Aim for a complete look: one top, one bottom, one pair of shoes, and optional accessory/outerwear.
+        
+        USER CLOSET:
+        \(itemsInfo)
+        
+        Output only a JSON array of the IDs you picked.
+        Example output: ["UUID-1", "UUID-2"]
+        
+        Return pure JSON only.
+        """
+        
+        let response = try await callGemini(model: "gemini-2.5-flash", prompt: prompt, images: nil, responseType: .text)
+        
+        // 3. Parse Response
+        let cleanedJSON = response
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            
+        guard let jsonData = cleanedJSON.data(using: .utf8) else {
+            throw StylistError.invalidResponse
+        }
+        
+        let ids = try JSONDecoder().decode([String].self, from: jsonData)
+        let uuids = ids.compactMap { UUID(uuidString: $0) }
+        
+        return Set(uuids)
+    }
+    
     // MARK: - Core Pipeline
     
     func generateModelPhoto(items: [ClothingItem], gender: Gender) async throws -> UIImage {

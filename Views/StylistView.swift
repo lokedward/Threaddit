@@ -13,6 +13,11 @@ struct StylistView: View {
     @AppStorage("stylistModelGender") private var genderRaw = "female"
     @State private var showSettings = false
     
+    // AI Suggestion State
+    @AppStorage("stylistOccasion") private var occasionRaw = StylistOccasion.casual.rawValue
+    @AppStorage("stylistCustomOccasion") private var customOccasion = ""
+    @State private var isStyling = false
+    
     // Computed property to sync local state with AppStorage
     private var modelGender: Gender {
         genderRaw == "male" ? .male : .female
@@ -29,6 +34,11 @@ struct StylistView: View {
                     gender: modelGender
                 )
                 .frame(maxHeight: .infinity)
+                .overlay {
+                    if isStyling {
+                        ProcessingOverlayView(message: "Stylist is thinking...")
+                    }
+                }
                 
                 // Bottom Selection Drawer/Grid
                 VStack(spacing: 0) {
@@ -48,9 +58,27 @@ struct StylistView: View {
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(PoshTheme.Colors.ink)
                             }
+                            }
                         }
                         
                         Spacer()
+                        
+                        if !items.isEmpty {
+                            Button {
+                                performAISuggestion()
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Text("STYLE ME!").font(.system(size: 10, weight: .bold)).tracking(1)
+                                    Image(systemName: "sparkles")
+                                }
+                                .foregroundColor(PoshTheme.Colors.ink)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .background(PoshTheme.Colors.ink.opacity(0.05))
+                                .clipShape(Capsule())
+                            }
+                            .disabled(isStyling)
+                        }
                         
                         Spacer()
                         
@@ -99,7 +127,36 @@ struct StylistView: View {
         }
         .sheet(isPresented: $showSettings) {
             StylistSettingsView()
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+        }
+    }
+    
+    // MARK: - AI Selection Logic
+    
+    private func performAISuggestion() {
+        let targetOccasion = occasionRaw == StylistOccasion.custom.rawValue ? customOccasion : occasionRaw
+        
+        isStyling = true
+        Task {
+            do {
+                let suggestedIDs = try await StylistService.shared.suggestOutfit(for: targetOccasion, availableItems: items)
+                await MainActor.run {
+                    withAnimation(.spring()) {
+                        self.selectedItems = suggestedIDs
+                        self.showingSelection = false // Focus on the canvas
+                    }
+                    self.isStyling = false
+                    
+                    // Haptic feedback
+                    let generator = UINotificationFeedbackGenerator()
+                    generator.notificationOccurred(.success)
+                }
+            } catch {
+                print("❌ Styling Error: \(error)")
+                await MainActor.run {
+                    self.isStyling = false
+                }
+            }
         }
     }
 }
