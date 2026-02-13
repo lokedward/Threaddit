@@ -169,10 +169,10 @@ struct CropView: View {
         // This allows us to zoom out until the whole image is visible inside the crop box
         if imgRatio > cropRatio {
             // Image is wider -> Min scale is when width fits
-            minScale = cropSize.width / imageSize.width
+            minScale = cropSize.width / width
         } else {
             // Image is taller -> Min scale is when height fits
-            minScale = cropSize.height / imageSize.height
+            minScale = cropSize.height / height
         }
         
         // 4. Reset State
