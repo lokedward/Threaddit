@@ -27,6 +27,8 @@ struct StylistView: View {
     @State private var stylistMessage: String?
     @State private var showMessage = false
     
+    @State private var dynamicLoadingMessage = "STYLIST IS THINKING..."
+    
     // Computed property to sync local state with AppStorage
     private var modelGender: Gender {
         genderRaw == "male" ? .male : .female
@@ -48,7 +50,7 @@ struct StylistView: View {
                 .frame(maxHeight: .infinity)
                 .overlay {
                     if isStyling {
-                        ProcessingOverlayView(message: "Stylist is picking your outfit...")
+                        ProcessingOverlayView(message: dynamicLoadingMessage)
                     }
                 }
                 
@@ -118,11 +120,6 @@ struct StylistView: View {
                         
                         Spacer()
                         
-                            }
-                        }
-                        
-                        Spacer()
-                        
                         Button {
                             withAnimation(.spring()) {
                                 showingSelection.toggle()
@@ -177,6 +174,7 @@ struct StylistView: View {
     private func performAISuggestion() {
         let targetOccasion = occasionRaw == StylistOccasion.custom.rawValue ? customOccasion : occasionRaw
         
+        dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .styling)
         isStyling = true
         generatedImage = nil // Reset canvas
         
@@ -197,6 +195,7 @@ struct StylistView: View {
                 let selectedClothingItems = items.filter { suggestedIDs.contains($0.id) }
                 if !selectedClothingItems.isEmpty {
                     await MainActor.run {
+                        self.dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .generation)
                         self.isStyling = false
                         self.isGenerating = true
                     }

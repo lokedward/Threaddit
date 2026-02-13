@@ -50,6 +50,7 @@ struct AddItemView: View {
     @State private var emailItemsQueue: [EmailProductItem] = []
     @State private var isLoadingEmailImage = false
     @State private var showingSaveAlert = false
+    @State private var dynamicLoadingMessage = "PROCESSING..."
     
     var canSave: Bool {
         let hasImage = additionMode == .single ? selectedImage != nil : !bulkImageQueue.isEmpty
@@ -136,7 +137,7 @@ struct AddItemView: View {
             ))
             .overlay {
                 if isProcessingImage {
-                    ProcessingOverlayView()
+                    ProcessingOverlayView(message: dynamicLoadingMessage)
                 }
             }
             .onAppear {
@@ -300,6 +301,7 @@ struct AddItemView: View {
         let currentImage = additionMode == .single ? selectedImage : bulkImageQueue.first
         guard let image = currentImage else { return }
         
+        dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .magicFill)
         isProcessingImage = true
         Task {
             do {
@@ -569,33 +571,6 @@ struct BulkEmptyStateView: View {
             Button(action: onOpenGallery) { Text("OPEN GALLERY").tracking(2) }.poshButton()
         }
         .frame(maxWidth: .infinity).padding(.vertical, 100)
-    }
-}
-
-struct ProcessingOverlayView: View {
-    var message: String = "PROCESSING GARMENTS"
-    
-    var body: some View {
-        ZStack {
-            // Soft dimming that matches our brand colors
-            PoshTheme.Colors.ink.opacity(0.2)
-                .ignoresSafeArea()
-            
-            VStack(spacing: 24) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .tint(PoshTheme.Colors.ink)
-                
-                Text(message)
-                    .font(.system(size: 11, weight: .bold))
-                    .tracking(3)
-                    .foregroundColor(PoshTheme.Colors.ink)
-            }
-            .padding(.vertical, 40)
-            .padding(.horizontal, 48)
-            .background(Color.white)
-            .poshCard()
-        }
     }
 }
 

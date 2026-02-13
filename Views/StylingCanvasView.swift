@@ -16,6 +16,7 @@ struct StylingCanvasView: View {
     
     @State private var errorMessage: String?
     @State private var showUpgradePrompt = false
+    @State private var dynamicLoadingMessage = "CREATING YOUR LOOK"
     
     let stylistService = StylistService.shared
     
@@ -106,10 +107,12 @@ struct StylingCanvasView: View {
                         .tint(PoshTheme.Colors.ink)
                     
                     VStack(spacing: 8) {
-                        Text("CREATING YOUR LOOK")
-                            .font(.system(size: 12, weight: .bold))
+                        Text(dynamicLoadingMessage.uppercased())
+                            .font(.system(size: 11, weight: .bold))
                             .tracking(3)
                             .foregroundColor(PoshTheme.Colors.ink)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                         
                         Text(stylistService.userTier == .free ? "Using 1 of 3 daily generations" : "Premium quality generation")
                             .font(.system(size: 10, weight: .light))
@@ -202,6 +205,7 @@ struct StylingCanvasView: View {
     func generateLook() {
         guard !selectedItems.isEmpty else { return }
         
+        dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .generation)
         errorMessage = nil
         isGenerating = true
         
