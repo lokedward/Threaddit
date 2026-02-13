@@ -322,21 +322,30 @@ struct AddItemView: View {
         isProcessingImage = true
         Task {
             do {
-                let metadata = try await StylistService.shared.enrichMetadata(image: image)
-                await MainActor.run {
-                    SubscriptionService.shared.recordMagicFill()
-                    withAnimation {
-                        self.name = metadata.name
-                        self.brand = metadata.brand ?? ""
-                        self.size = metadata.size ?? ""
-                        self.tagsText = metadata.tags.joined(separator: ", ")
-                        
-                        // Match category
-                        if let matched = categories.first(where: { $0.name.lowercased() == metadata.category.lowercased() }) {
-                            self.selectedCategory = matched
+                if let metadata = try await StylistService.shared.enrichMetadata(image: image) {
+                    await MainActor.run {
+                        SubscriptionService.shared.recordMagicFill()
+                        withAnimation {
+                            self.name = metadata.name
+                            self.brand = metadata.brand ?? ""
+                            self.size = metadata.size ?? ""
+                            self.tagsText = metadata.tags.joined(separator: ", ")
+                            
+                            // Match category
+                            if let matched = categories.first(where: { $0.name.lowercased() == metadata.category.lowercased() }) {
+                                self.selectedCategory = matched
+                            }
+                        }
+                        self.isProcessingImage = false
+                    }
+                } else {
+                    await MainActor.run {
+                        // "Fail Fast" - image was not a clothing item
+                        dynamicLoadingMessage = "NO CLOTHING DETECTED"
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                            self.isProcessingImage = false
                         }
                     }
-                    self.isProcessingImage = false
                 }
             } catch {
                 print("❌ Magic Fill Error: \(error)")

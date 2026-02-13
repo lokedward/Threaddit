@@ -25,8 +25,11 @@ class StylistService {
         let tags: [String]
     }
     
-    func enrichMetadata(image: UIImage) async throws -> GarmentMetadata {
-        guard let data = image.jpegData(compressionQuality: 0.7) else {
+    func enrichMetadata(image: UIImage) async throws -> GarmentMetadata? {
+        // Optimization: Resize image to 512px max dimension to reduce network latency
+        let resizedImage = resizeImage(image, targetSize: CGSize(width: 512, height: 512))
+        
+        guard let data = resizedImage.jpegData(compressionQuality: 0.7) else {
             throw StylistError.invalidImageData
         }
         
@@ -34,20 +37,25 @@ class StylistService {
         let knownCategories = ["Tops", "Bottoms", "Outerwear", "Shoes", "Accessories"]
         
         let prompt = """
-        Accurately identify this clothing item for a high-end fashion app.
-        Be professional and concise.
+        IDENTIFY CLOTHING: Check if this photo contains a clear clothing item.
         
-        Output only a valid JSON object:
-        - "name": Brief, professional name (e.g. "Charcoal Wool Blazer", not "A very nice blazer")
-        - "brand": Brand name if clearly visible on labels/logos, otherwise null
-        - "size": Size if clearly visible on tags, otherwise null
-        - "category": Categorize as exactly one of: \(knownCategories.joined(separator: ", "))
-        - "tags": 3-5 high-quality descriptive keywords (fabric, style, occasion)
+        IF NO CLOTHING DETECTED: Return exactly the text "NONE".
         
-        Return PURE JSON. No descriptions.
+        IF CLOTHING DETECTED: Return only a valid JSON object:
+        - "name": Brief, professional name (e.g. "Charcoal Wool Blazer")
+        - "brand": Brand name if visible, otherwise null
+        - "size": Size if visible, otherwise null
+        - "category": Exactly one of: \(knownCategories.joined(separator: ", "))
+        - "tags": 3-5 high-quality keywords
+        
+        NO PREAMBLE. NO MARKDOWN.
         """
         
-        let jsonString = try await callGemini(model: "gemini-2.5-flash", prompt: prompt, images: [data], responseType: .text)
+        let jsonString = try await callGemini(model: "gemini-2.0-flash", prompt: prompt, images: [data], responseType: .text)
+        
+        if jsonString.trimmingCharacters(in: .whitespacesAndNewlines).uppercased() == "NONE" {
+            return nil
+        }
         
         // Clean the response string if Gemini wrapped it in markdown code blocks
         let cleanedJSON = jsonString
@@ -60,6 +68,30 @@ class StylistService {
         }
         
         return try JSONDecoder().decode(GarmentMetadata.self, from: jsonData)
+    }
+    
+    // Helper to resize image for faster transmission
+    private func resizeImage(_ image: UIImage, targetSize: CGSize) -> UIImage {
+        let size = image.size
+        
+        let widthRatio  = targetSize.width  / size.width
+        let heightRatio = targetSize.height / size.height
+        
+        var newSize: CGSize
+        if(widthRatio > heightRatio) {
+            newSize = CGSize(width: size.width * heightRatio, height: size.height * heightRatio)
+        } else {
+            newSize = CGSize(width: size.width * widthRatio,  height: size.height * widthRatio)
+        }
+        
+        let rect = CGRect(origin: .zero, size: newSize)
+        
+        UIGraphicsBeginImageContextWithOptions(newSize, false, 1.0)
+        image.draw(in: rect)
+        let newImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return newImage ?? image
     }
     
     // MARK: - Occasion-Based Selection
