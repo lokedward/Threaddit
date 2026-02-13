@@ -12,6 +12,7 @@ struct HomeView: View {
     
     @AppStorage("hasCompletedOnboarding") private var hasCompletedOnboarding = false
     
+    @Query private var allItems: [ClothingItem]
     @Query(sort: \Outfit.createdAt, order: .reverse) private var outfits: [Outfit]
     
     // Computed property to check if the wardrobe is truly empty (no items in any category)
@@ -36,9 +37,13 @@ struct HomeView: View {
                     LazyVStack(alignment: .leading, spacing: 32) {
                         // Closet Section
                         VStack(spacing: 24) {
-                            HStack {
+                            HStack(alignment: .firstTextBaseline, spacing: 12) {
                                 Text("Your Closet")
                                      .poshHeadline(size: 24)
+                                
+                                Text("\(allItems.count)")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
                                 Spacer()
                                 NavigationLink(destination: SearchView()) {
                                     Text("See All")

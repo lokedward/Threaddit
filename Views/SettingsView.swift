@@ -42,6 +42,47 @@ struct SettingsView: View {
                 
                 ScrollView {
                     VStack(spacing: 24) {
+                        // Membership Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("MEMBERSHIP")
+                                .font(.system(size: 10, weight: .bold))
+                                .tracking(1)
+                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                            
+                            Button {
+                                showPaywall = true
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(SubscriptionService.shared.currentTier.rawValue.uppercased())
+                                            .font(.system(size: 13, weight: .bold))
+                                            .tracking(1)
+                                            .foregroundColor(PoshTheme.Colors.ink)
+                                        
+                                        Text(SubscriptionService.shared.currentTier == .free ? "Upgrade for unlimited wardrobe" : "Premium Member")
+                                            .font(.system(size: 11, weight: .medium))
+                                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Text(SubscriptionService.shared.currentTier == .free ? "UPGRADE" : "MANAGE")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(PoshTheme.Colors.gold)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(PoshTheme.Colors.gold.opacity(0.1))
+                                        .cornerRadius(4)
+                                }
+                                .padding()
+                                .background(Color.white)
+                                .cornerRadius(12)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.horizontal)
+
                         // Categories Section
                         VStack(alignment: .leading, spacing: 16) {
                             Text("ORGANIZATION")
@@ -109,11 +150,47 @@ struct SettingsView: View {
                                 .tracking(1)
                                 .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                             
-                            VStack(spacing: 12) {
-                                PoshDetailRow(label: "TOTAL GARMENTS", value: "\(allItems.count)")
+                            VStack(spacing: 20) {
+                                let totalGarments = allItems.count
+                                let limit = SubscriptionService.shared.currentTier.wardrobeLimit
+                                
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("TOTAL GARMENTS")
+                                            .font(.system(size: 10, weight: .bold))
+                                            .tracking(1)
+                                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                                        Spacer()
+                                        if let limit = limit {
+                                            Text("\(totalGarments) / \(limit)")
+                                                .font(.system(size: 13, weight: .bold))
+                                        } else {
+                                            Text("\(totalGarments) / UNLIMITED")
+                                                .font(.system(size: 13, weight: .bold))
+                                        }
+                                    }
+                                    
+                                    if let limit = limit {
+                                        GeometryReader { geo in
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(PoshTheme.Colors.ink.opacity(0.05))
+                                                    .frame(height: 6)
+                                                
+                                                Capsule()
+                                                    .fill(totalGarments >= limit ? Color.red : PoshTheme.Colors.gold)
+                                                    .frame(width: geo.size.width * min(1.0, CGFloat(totalGarments) / CGFloat(limit)), height: 6)
+                                            }
+                                        }
+                                        .frame(height: 6)
+                                    }
+                                }
+                                
+                                Divider().opacity(0.5)
+                                
                                 PoshDetailRow(label: "COLLECTIONS", value: "\(allCategories.count)")
                             }
-                            .padding()
+                            .padding(20)
                             .background(Color.white)
                             .cornerRadius(12)
                         }
