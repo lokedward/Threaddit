@@ -602,21 +602,9 @@ struct AddItemPickerModifiers: ViewModifier {
     }
     
     private func handleCameraDismiss() {
-        guard let image = imageToCrop else { return }
-        
-        isProcessingImage = true
-        Task.detached(priority: .userInitiated) {
-            var finalImg = image
-            if self.autoRemoveBackground {
-                if let cleaned = try? await image.removeBackground() {
-                    finalImg = cleaned
-                }
-            }
-            
-            await MainActor.run {
-                self.onInitialImage(finalImg)
-                self.isProcessingImage = false
-                self.imageToCrop = nil
+        if let image = imageToCrop {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                onInitialImage(image)
             }
         }
     }
