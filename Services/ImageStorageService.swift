@@ -84,6 +84,9 @@ class ImageStorageService {
     
     /// Delete an image by its UUID
     func deleteImage(withID id: UUID) {
+        let key = id.uuidString as NSString
+        cache.removeObject(forKey: key)
+        
         let fileURL = imageDirectory.appendingPathComponent("\(id.uuidString).jpg")
         try? fileManager.removeItem(at: fileURL)
     }
