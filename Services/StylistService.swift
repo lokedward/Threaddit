@@ -46,7 +46,7 @@ class StylistService {
         - "brand": Brand name if visible, otherwise null
         - "size": Size if visible, otherwise null
         - "category": Exactly one of: \(knownCategories.joined(separator: ", "))
-        - "tags": 3-5 high-quality keywords
+        - "tags": 2-3 concise keywords (strictly 1 word each)
         
         NO PREAMBLE. NO MARKDOWN.
         """
