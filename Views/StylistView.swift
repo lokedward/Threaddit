@@ -58,7 +58,6 @@ struct StylistView: View {
                                     .font(.system(size: 10, weight: .bold))
                                     .foregroundColor(PoshTheme.Colors.ink)
                             }
-                            }
                         }
                         
                         Spacer()
