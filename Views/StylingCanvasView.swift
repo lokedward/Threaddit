@@ -9,10 +9,12 @@ struct StylingCanvasView: View {
     let selectedItems: [ClothingItem]
     let gender: Gender
     
-    @State private var generatedImage: UIImage?
-    @State private var isGenerating = false
+    // External state management
+    @Binding var generatedImage: UIImage?
+    @Binding var isGenerating: Bool
+    @Binding var isSaved: Bool
+    
     @State private var errorMessage: String?
-    @State private var isSaved = false
     @State private var showUpgradePrompt = false
     
     let stylistService = StylistService.shared
@@ -116,7 +118,7 @@ struct StylingCanvasView: View {
                 }
                 .padding(.vertical, 40)
                 .padding(.horizontal, 32)
-                .background(PoshTheme.Colors.stone)
+                .background(Color.white)
                 .poshCard()
                 .transition(.opacity.combined(with: .scale(scale: 0.9)))
             } else {
@@ -197,7 +199,7 @@ struct StylingCanvasView: View {
         }
     }
     
-    private func generateLook() {
+    func generateLook() {
         guard !selectedItems.isEmpty else { return }
         
         errorMessage = nil
@@ -212,14 +214,14 @@ struct StylingCanvasView: View {
                 
                 await MainActor.run {
                     withAnimation(.spring()) {
-                        generatedImage = image
-                        isGenerating = false
-                        isSaved = false
+                        self.generatedImage = image
+                        self.isGenerating = false
+                        self.isSaved = false
                     }
                 }
             } catch {
                 await MainActor.run {
-                    isGenerating = false
+                    self.isGenerating = false
                     withAnimation {
                         errorMessage = error.localizedDescription
                     }

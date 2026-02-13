@@ -18,6 +18,11 @@ struct StylistView: View {
     @AppStorage("stylistCustomOccasion") private var customOccasion = ""
     @State private var isStyling = false
     
+    // Generation State (Shared with Canvas)
+    @State private var generatedImage: UIImage?
+    @State private var isGenerating = false
+    @State private var isSaved = false
+    
     // Computed property to sync local state with AppStorage
     private var modelGender: Gender {
         genderRaw == "male" ? .male : .female
@@ -31,12 +36,15 @@ struct StylistView: View {
                 // Styling Canvas
                 StylingCanvasView(
                     selectedItems: items.filter { selectedItems.contains($0.id) },
-                    gender: modelGender
+                    gender: modelGender,
+                    generatedImage: $generatedImage,
+                    isGenerating: $isGenerating,
+                    isSaved: $isSaved
                 )
                 .frame(maxHeight: .infinity)
                 .overlay {
                     if isStyling {
-                        ProcessingOverlayView(message: "Stylist is thinking...")
+                        ProcessingOverlayView(message: "Stylist is picking your outfit...")
                     }
                 }
                 
@@ -130,30 +138,59 @@ struct StylistView: View {
         }
     }
     
-    // MARK: - AI Selection Logic
-    
     private func performAISuggestion() {
         let targetOccasion = occasionRaw == StylistOccasion.custom.rawValue ? customOccasion : occasionRaw
         
         isStyling = true
+        generatedImage = nil // Reset canvas
+        
         Task {
             do {
+                // 1. Pick the items
                 let suggestedIDs = try await StylistService.shared.suggestOutfit(for: targetOccasion, availableItems: items)
+                
                 await MainActor.run {
                     withAnimation(.spring()) {
                         self.selectedItems = suggestedIDs
-                        self.showingSelection = false // Focus on the canvas
+                        self.showingSelection = false
                     }
-                    self.isStyling = false
-                    
-                    // Haptic feedback
-                    let generator = UINotificationFeedbackGenerator()
-                    generator.notificationOccurred(.success)
                 }
+                
+                // 2. Generate the Inspo Image
+                let selectedClothingItems = items.filter { suggestedIDs.contains($0.id) }
+                if !selectedClothingItems.isEmpty {
+                    await MainActor.run {
+                        self.isStyling = false
+                        self.isGenerating = true
+                    }
+                    
+                    let image = try await StylistService.shared.generateModelPhoto(
+                        items: selectedClothingItems,
+                        gender: modelGender
+                    )
+                    
+                    await MainActor.run {
+                        withAnimation(.spring()) {
+                            self.generatedImage = image
+                            self.isGenerating = false
+                            self.isSaved = false
+                        }
+                        
+                        // Haptic feedback
+                        let generator = UINotificationFeedbackGenerator()
+                        generator.notificationOccurred(.success)
+                    }
+                } else {
+                    await MainActor.run {
+                        self.isStyling = false
+                    }
+                }
+                
             } catch {
                 print("❌ Styling Error: \(error)")
                 await MainActor.run {
                     self.isStyling = false
+                    self.isGenerating = false
                 }
             }
         }
