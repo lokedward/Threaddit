@@ -26,7 +26,7 @@ enum SubscriptionTier: String, Codable, CaseIterable {
     
     var dailyStyleMeLimit: Int {
         switch self {
-        case .free: return 1
+        case .free: return 3
         case .boutique, .atelier: return 50
         }
     }
