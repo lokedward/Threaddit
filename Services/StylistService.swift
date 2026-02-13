@@ -74,8 +74,8 @@ class StylistService {
     
     // MARK: - Occasion-Based Selection
     
-    func suggestOutfit(for occasion: String, availableItems: [ClothingItem]) async throws -> Set<UUID> {
-        guard !availableItems.isEmpty else { return [] }
+    func suggestOutfit(for occasion: String, availableItems: [ClothingItem]) async throws -> (Set<UUID>, String) {
+        guard !availableItems.isEmpty else { return ([], "") }
         
         // 1. Prepare Wardrobe Summary
         let itemsInfo = availableItems.map { item in
@@ -97,11 +97,14 @@ class StylistService {
         Pick the BEST combination of items for this occasion. 
         Aim for a complete look: one top, one bottom, one pair of shoes, and optional accessory/outerwear.
         
+        Output only a JSON object:
+        {
+          "ids": ["UUID-1", "UUID-2"],
+          "explanation": "A very brief (1 sentence) explanation of why this look works for the occasion."
+        }
+        
         USER CLOSET:
         \(itemsInfo)
-        
-        Output only a JSON array of the IDs you picked.
-        Example output: ["UUID-1", "UUID-2"]
         
         Return pure JSON only.
         """
@@ -118,10 +121,15 @@ class StylistService {
             throw StylistError.invalidResponse
         }
         
-        let ids = try JSONDecoder().decode([String].self, from: jsonData)
-        let uuids = ids.compactMap { UUID(uuidString: $0) }
+        struct SuggestionResponse: Codable {
+            let ids: [String]
+            let explanation: String
+        }
         
-        return Set(uuids)
+        let decoded = try JSONDecoder().decode(SuggestionResponse.self, from: jsonData)
+        let uuids = decoded.ids.compactMap { UUID(uuidString: $0) }
+        
+        return (Set(uuids), decoded.explanation)
     }
     
     // MARK: - Core Pipeline

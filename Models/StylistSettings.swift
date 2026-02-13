@@ -92,14 +92,16 @@ struct StylistSettingsView: View {
     @AppStorage("stylistOccasion") private var occasionRaw = StylistOccasion.casual.rawValue
     @AppStorage("stylistCustomOccasion") private var customOccasion = ""
     
+    var onStyleMe: (() -> Void)? = nil
+    
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
             Form {
-                stylingOccasionSection
                 modelProfileSection
                 appearanceSection
+                stylingOccasionSection
                 footerSection
             }
             .scrollContentBackground(.hidden)
@@ -130,9 +132,30 @@ struct StylistSettingsView: View {
                     .font(.system(size: 15))
             }
             
-            Text("The Stylist will prioritize items in your closet that fit this vibe.")
-                .font(.caption2)
-                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 12) {
+                Text("The Stylist will prioritize items in your closet that fit this vibe, try our smart stylist feature below:")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                
+                Button {
+                    dismiss()
+                    onStyleMe?()
+                } label: {
+                    HStack(spacing: 8) {
+                        Text("STYLE ME!")
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(2)
+                        Image(systemName: "sparkles")
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(PoshTheme.Colors.ink)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.vertical, 8)
         }
         .listRowBackground(Color.white)
     }

@@ -23,6 +23,10 @@ struct StylistView: View {
     @State private var isGenerating = false
     @State private var isSaved = false
     
+    // Stylist Message
+    @State private var stylistMessage: String?
+    @State private var showMessage = false
+    
     // Computed property to sync local state with AppStorage
     private var modelGender: Gender {
         genderRaw == "male" ? .male : .female
@@ -48,6 +52,50 @@ struct StylistView: View {
                     }
                 }
                 
+                // Stylist Message Overlay
+                if showMessage, let message = stylistMessage {
+                    VStack {
+                        HStack(spacing: 12) {
+                            Image(systemName: "quote.opening")
+                                .font(.system(size: 14))
+                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                            
+                            Text(message)
+                                .font(.system(size: 13, weight: .medium, design: .serif))
+                                .italic()
+                                .foregroundColor(PoshTheme.Colors.ink)
+                                .multilineTextAlignment(.leading)
+                            
+                            Spacer()
+                            
+                            Button {
+                                withAnimation(.easeOut) { showMessage = false }
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
+                                    .padding(8)
+                            }
+                        }
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 20)
+                        .background(
+                            PoshTheme.Colors.stone
+                                .overlay(
+                                    Rectangle()
+                                        .stroke(PoshTheme.Colors.ink.opacity(0.05), lineWidth: 1)
+                                )
+                        )
+                        .poshCard()
+                        .padding(.horizontal, 20)
+                        .padding(.top, 10)
+                        
+                        Spacer()
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+                    .zIndex(10)
+                }
+                
                 // Bottom Selection Drawer/Grid
                 VStack(spacing: 0) {
                     Divider()
@@ -70,21 +118,7 @@ struct StylistView: View {
                         
                         Spacer()
                         
-                        if !items.isEmpty {
-                            Button {
-                                performAISuggestion()
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Text("STYLE ME!").font(.system(size: 10, weight: .bold)).tracking(1)
-                                    Image(systemName: "sparkles")
-                                }
-                                .foregroundColor(PoshTheme.Colors.ink)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
-                                .background(PoshTheme.Colors.ink.opacity(0.05))
-                                .clipShape(Capsule())
                             }
-                            .disabled(isStyling)
                         }
                         
                         Spacer()
@@ -133,8 +167,10 @@ struct StylistView: View {
             }
         }
         .sheet(isPresented: $showSettings) {
-            StylistSettingsView()
-                .presentationDetents([.medium, .large])
+            StylistSettingsView(onStyleMe: {
+                performAISuggestion()
+            })
+            .presentationDetents([.medium, .large])
         }
     }
     
@@ -147,12 +183,13 @@ struct StylistView: View {
         Task {
             do {
                 // 1. Pick the items
-                let suggestedIDs = try await StylistService.shared.suggestOutfit(for: targetOccasion, availableItems: items)
+                let (suggestedIDs, explanation) = try await StylistService.shared.suggestOutfit(for: targetOccasion, availableItems: items)
                 
                 await MainActor.run {
                     withAnimation(.spring()) {
                         self.selectedItems = suggestedIDs
                         self.showingSelection = false
+                        self.stylistMessage = explanation
                     }
                 }
                 
@@ -174,6 +211,22 @@ struct StylistView: View {
                             self.generatedImage = image
                             self.isGenerating = false
                             self.isSaved = false
+                        }
+                        
+                        // Show the message with a slight delay after image appears
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            withAnimation(.spring()) {
+                                self.showMessage = true
+                            }
+                            
+                            // Auto-dismiss after 6 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 7.0) {
+                                withAnimation(.easeOut) {
+                                    if self.stylistMessage == explanation {
+                                        self.showMessage = false
+                                    }
+                                }
+                            }
                         }
                         
                         // Haptic feedback
