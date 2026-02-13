@@ -352,5 +352,11 @@ struct FeatureRow: View {
 }
 
 #Preview {
-    StylingCanvasView(selectedItems: [], gender: .female)
+    StylingCanvasView(
+        selectedItems: [],
+        gender: .female,
+        generatedImage: .constant(nil),
+        isGenerating: .constant(false),
+        isSaved: .constant(false)
+    )
 }
