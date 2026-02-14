@@ -1,11 +1,14 @@
 // PaywallView.swift
 // A luxurious, editorial-style paywall for Threaddit subscriptions
+// Connected to StoreKit 2 for App Store compliance
 
 import SwiftUI
+import StoreKit
 
 struct PaywallView: View {
     @StateObject private var subscriptionService = SubscriptionService.shared
     @Environment(\.dismiss) private var dismiss
+    @State private var isPurchasing = false
     
     var body: some View {
         ZStack {
@@ -19,6 +22,12 @@ struct PaywallView: View {
                     footerSection
                 }
                 .padding(.vertical, 40)
+            }
+            
+            if isPurchasing {
+                Color.black.opacity(0.1).ignoresSafeArea()
+                ProgressView()
+                    .scaleEffect(1.5)
             }
             
             // Close Button
@@ -39,6 +48,7 @@ struct PaywallView: View {
                 Spacer()
             }
         }
+        .disabled(isPurchasing)
     }
     
     // MARK: - Subviews
@@ -68,7 +78,6 @@ struct PaywallView: View {
             benefitRow(icon: "infinity", title: "Unlimited Wardrobe", subtitle: "Digitize every piece, from couture to core.")
             benefitRow(icon: "sparkles", title: "Smart Magic Fill", subtitle: "Instant AI enrichment for all your garments.")
             benefitRow(icon: "wand.and.stars", title: "Photorealistic Outfits", subtitle: "Unlimited AI model looks for every occasion.")
-//            benefitRow(icon: "envelope.fill", title: "Automatic Imports", subtitle: "Scan your inbox for seamless wardrobe tracking.")
         }
         .padding(.horizontal, 30)
     }
@@ -96,27 +105,39 @@ struct PaywallView: View {
     
     private var tierSelectionSection: some View {
         VStack(spacing: 16) {
-            tierCard(
-                tier: .boutique,
-                price: "$3.99 / mo",
-                tagline: "The Everyday Enthusiast",
-                isPopular: true
-            )
-            
-            tierCard(
-                tier: .atelier,
-                price: "$6.99 / mo",
-                tagline: "The Fashion Professional",
-                isPopular: false
-            )
+            if subscriptionService.products.isEmpty {
+                ProgressView()
+                    .padding()
+            } else {
+                tierCard(
+                    tier: .boutique,
+                    price: priceFor(.boutique),
+                    tagline: "The Everyday Enthusiast",
+                    isPopular: true
+                )
+                
+                tierCard(
+                    tier: .atelier,
+                    price: priceFor(.atelier),
+                    tagline: "The Fashion Professional",
+                    isPopular: false
+                )
+            }
         }
         .padding(.horizontal, 20)
     }
     
+    private func priceFor(_ tier: SubscriptionTier) -> String {
+        guard let productId = tier.productId,
+              let product = subscriptionService.products.first(where: { $0.id == productId }) else {
+            return "Unavailable"
+        }
+        return product.displayPrice
+    }
+    
     private func tierCard(tier: SubscriptionTier, price: String, tagline: String, isPopular: Bool) -> some View {
         Button {
-            subscriptionService.upgrade(to: tier)
-            dismiss()
+            handlePurchase(tier)
         } label: {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
@@ -135,6 +156,11 @@ struct PaywallView: View {
                             .background(PoshTheme.Colors.gold)
                             .foregroundColor(.white)
                     }
+                    
+                    if subscriptionService.currentTier == tier {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(PoshTheme.Colors.gold)
+                    }
                 }
                 
                 Text(tagline)
@@ -149,7 +175,7 @@ struct PaywallView: View {
                     
                     Spacer()
                     
-                    Text("SELECT →")
+                    Text(subscriptionService.currentTier == tier ? "ACTIVE" : "SELECT →")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1)
                         .foregroundColor(PoshTheme.Colors.gold)
@@ -157,7 +183,7 @@ struct PaywallView: View {
                 .padding(.top, 4)
             }
             .padding(24)
-            .background(Color.white)
+            .background(PoshTheme.Colors.canvas)
             .overlay(
                 Rectangle()
                     .stroke(isPopular ? PoshTheme.Colors.gold : PoshTheme.Colors.border, lineWidth: isPopular ? 2 : 0.5)
@@ -165,6 +191,7 @@ struct PaywallView: View {
             .shadow(color: .black.opacity(0.02), radius: 10, x: 0, y: 5)
         }
         .buttonStyle(.plain)
+        .disabled(subscriptionService.currentTier == tier)
     }
     
     private var footerSection: some View {
@@ -176,7 +203,7 @@ struct PaywallView: View {
             
             HStack(spacing: 24) {
                 Button {
-                    // Restore logic would go here
+                    handleRestore()
                 } label: {
                     Text("Restore Purchases")
                         .underline()
@@ -187,6 +214,32 @@ struct PaywallView: View {
             }
             .font(.system(size: 11, weight: .medium))
             .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
+        }
+    }
+    
+    private func handlePurchase(_ tier: SubscriptionTier) {
+        isPurchasing = true
+        Task {
+            do {
+                try await subscriptionService.purchase(tier)
+                if subscriptionService.currentTier == tier {
+                    dismiss()
+                }
+            } catch {
+                print("❌ Purchase failed: \(error)")
+            }
+            isPurchasing = false
+        }
+    }
+    
+    private func handleRestore() {
+        isPurchasing = true
+        Task {
+            await subscriptionService.restorePurchases()
+            isPurchasing = false
+            if subscriptionService.currentTier != .free {
+                dismiss()
+            }
         }
     }
 }

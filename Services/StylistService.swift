@@ -251,10 +251,11 @@ class StylistService {
         
         let fullPrompt = """
         <IMAGE_GENERATION_REQUEST>
-        Editorial neck down fashion photo.
+        Editorial neck down fashion photo. No faces.
         Model: \(height.promptDescription) \(genderStr) model, \(skinTone.promptDescription), \(bodyType.promptDescription).
         Outfit: \(description).
         Studio lighting, neutral grey background, 8k, highly detailed, photorealistic.
+        Safety: Strictly fashion-related. No nudity, no violence, no inappropriate content.
         Output: Raw image bytes.
         </IMAGE_GENERATION_REQUEST>
         """
@@ -290,10 +291,10 @@ class StylistService {
         let content = Content(role: "user", parts: parts)
         
         let safetySettings = [
-            SafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE"),
-            SafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE"),
-            SafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE"),
-            SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE")
+            SafetySetting(category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
+            SafetySetting(category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
+            SafetySetting(category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_MEDIUM_AND_ABOVE"),
+            SafetySetting(category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_MEDIUM_AND_ABOVE")
         ]
         
         // Note: For image generation, we request 1 candidate. 

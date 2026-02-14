@@ -46,7 +46,7 @@ struct PoshTheme {
 struct PoshCardModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(Color.white)
+            .background(PoshTheme.Colors.canvas)
             .cornerRadius(0) // Sharp editorial corners
             .overlay(
                 Rectangle()

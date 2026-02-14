@@ -191,7 +191,7 @@ struct StylingTabView: View {
                         .font(.system(size: 14))
                         .lineLimit(2...3)
                         .padding(10)
-                        .background(Color.white)
+                        .background(PoshTheme.Colors.canvas)
                         .cornerRadius(8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
@@ -289,6 +289,42 @@ struct ProfileTabView: View {
                                 }
                         }
                     }
+                }
+                
+                Divider()
+                    .padding(.vertical, 10)
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("SUBSCRIPTION")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(PoshTheme.Colors.gold)
+                    
+                    HStack {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(SubscriptionService.shared.currentTier.rawValue.uppercased())
+                                .font(.system(size: 14, weight: .bold))
+                            Text(SubscriptionService.shared.currentTier == .free ? "Basic access" : "Premium member")
+                                .font(.system(size: 12))
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        Spacer()
+                        
+                        if SubscriptionService.shared.currentTier != .free {
+                            Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
+                                Text("MANAGE")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(PoshTheme.Colors.ink.opacity(0.05))
+                                    .cornerRadius(4)
+                            }
+                        }
+                    }
+                    .padding()
+                    .background(PoshTheme.Colors.canvas)
+                    .poshCard()
                 }
                 
                 Text("These settings help the AI generate a model that best represents you.")

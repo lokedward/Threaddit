@@ -1,14 +1,24 @@
 // SubscriptionService.swift
-// Management for user tiers, feature gating, and usage limits
+// Management for user tiers, feature gating, and usage limits with StoreKit 2
+// Updated for App Store compliance
 
 import SwiftUI
 import SwiftData
-internal import Combine
+import StoreKit
+import Combine
 
 enum SubscriptionTier: String, Codable, CaseIterable {
     case free = "Free"
     case boutique = "Boutique Plus"
     case atelier = "Atelier Elite"
+    
+    var productId: String? {
+        switch self {
+        case .free: return nil
+        case .boutique: return "com.threadlist.boutique_plus"
+        case .atelier: return "com.threadlist.atelier_elite"
+        }
+    }
     
     var wardrobeLimit: Int? {
         switch self {
@@ -19,7 +29,7 @@ enum SubscriptionTier: String, Codable, CaseIterable {
     
     var dailyMagicFillLimit: Int {
         switch self {
-        case .free: return 0 // Now disabled for Free users
+        case .free: return 0 // Disabled for Free
         case .boutique, .atelier: return 1000
         }
     }
@@ -28,7 +38,7 @@ enum SubscriptionTier: String, Codable, CaseIterable {
         switch self {
         case .free: return 3 // Daily
         case .boutique: return 50 // Monthly
-        case .atelier: return 30 // Daily (Fair Use Throttle)
+        case .atelier: return 30 // Daily (Fair Use)
         }
     }
     
@@ -42,12 +52,6 @@ enum SubscriptionTier: String, Codable, CaseIterable {
     enum LimitPeriod {
         case daily, monthly
     }
-    
-/*
-    var canImportEmail: Bool {
-        self != .free
-    }
-*/
 }
 
 @MainActor
@@ -59,6 +63,10 @@ class SubscriptionService: ObservableObject {
     @Published private(set) var generationCount = 0
     @Published private(set) var monthlyGenerationCount = 0
     
+    // StoreKit Properties
+    @Published private(set) var products: [Product] = []
+    private var updates: Task<Void, Never>? = nil
+    
     private let tierKey = "userSubscriptionTier"
     private let magicFillKey = "dailyMagicFillCount"
     private let generationKey = "dailyGenerationCount"
@@ -67,15 +75,24 @@ class SubscriptionService: ObservableObject {
     private let monthlyResetKey = "lastMonthlyResetDate"
     
     private init() {
-        // Load state
-        let savedTier = UserDefaults.standard.string(forKey: tierKey) ?? ""
-        self.currentTier = SubscriptionTier(rawValue: savedTier) ?? .free
-        
+        // Load counters
         self.magicFillCount = UserDefaults.standard.integer(forKey: magicFillKey)
         self.generationCount = UserDefaults.standard.integer(forKey: generationKey)
         self.monthlyGenerationCount = UserDefaults.standard.integer(forKey: monthlyGenerationKey)
         
         checkAndResetLimits()
+        
+        // Initialize StoreKit
+        updates = observeTransactionUpdates()
+        
+        Task {
+            await fetchProducts()
+            await updateSubscriptionStatus()
+        }
+    }
+    
+    deinit {
+        updates?.cancel()
     }
     
     var remainingGenerations: Int {
@@ -84,7 +101,84 @@ class SubscriptionService: ObservableObject {
         return max(0, limit - used)
     }
     
-    // MARK: - Limit Checks
+    // MARK: - StoreKit 2 Implementation
+    
+    func fetchProducts() async {
+        do {
+            let ids = SubscriptionTier.allCases.compactMap { $0.productId }
+            self.products = try await Product.products(for: ids)
+            print("📦 StoreKit: Loaded \(products.count) products")
+        } catch {
+            print("❌ StoreKit: Failed to fetch products: \(error)")
+        }
+    }
+    
+    func purchase(_ tier: SubscriptionTier) async throws {
+        guard let productId = tier.productId,
+              let product = products.first(where: { $0.id == productId }) else {
+            return
+        }
+        
+        let result = try await product.purchase()
+        
+        switch result {
+        case .success(let verification):
+            let transaction = try checkVerified(verification)
+            await updateSubscriptionStatus()
+            await transaction.finish()
+        case .userCancelled, .pending:
+            break
+        @unknown default:
+            break
+        }
+    }
+    
+    func restorePurchases() async {
+        try? await AppStore.sync()
+        await updateSubscriptionStatus()
+    }
+    
+    func updateSubscriptionStatus() async {
+        var activeTier: SubscriptionTier = .free
+        
+        for await result in Transaction.currentEntitlements {
+            do {
+                let transaction = try checkVerified(result)
+                
+                // Identify which tier this transaction belongs to
+                if let tier = SubscriptionTier.allCases.first(where: { $0.productId == transaction.productID }) {
+                    // If multiple found (rare but possible), prioritize higher tier
+                    if tier == .atelier { activeTier = .atelier }
+                    else if tier == .boutique && activeTier != .atelier { activeTier = .boutique }
+                }
+            } catch {
+                print("⚠️ StoreKit: Entitlement verification failed")
+            }
+        }
+        
+        withAnimation {
+            self.currentTier = activeTier
+        }
+    }
+    
+    private func observeTransactionUpdates() -> Task<Void, Never> {
+        Task(priority: .background) {
+            for await _ in Transaction.updates {
+                await self.updateSubscriptionStatus()
+            }
+        }
+    }
+    
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .unverified:
+            throw StoreKitError.unknown // Basic error for simplicity
+        case .verified(let safe):
+            return safe
+        }
+    }
+    
+    // MARK: - Feature Gating
     
     func canAddItem(currentCount: Int) -> Bool {
         guard let limit = currentTier.wardrobeLimit else { return true }
@@ -120,15 +214,6 @@ class SubscriptionService: ObservableObject {
         }
     }
     
-    // MARK: - Tier Management
-    
-    func upgrade(to tier: SubscriptionTier) {
-        withAnimation {
-            currentTier = tier
-            UserDefaults.standard.set(tier.rawValue, forKey: tierKey)
-        }
-    }
-    
     // MARK: - Private Helpers
     
     private func checkAndResetLimits() {
@@ -145,7 +230,7 @@ class SubscriptionService: ObservableObject {
             UserDefaults.standard.set(now.timeIntervalSince1970, forKey: resetKey)
         }
         
-        // Monthly Reset (Every 30 days or same day of month)
+        // Monthly Reset
         let thirtyDays: TimeInterval = 30 * 24 * 60 * 60
         if now.timeIntervalSince(lastMonthlyReset) > thirtyDays {
             monthlyGenerationCount = 0
