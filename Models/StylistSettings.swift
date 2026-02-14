@@ -216,6 +216,7 @@ struct StylingTabView: View {
 }
 
 struct ProfileTabView: View {
+    @Binding var showPaywall: Bool
     @AppStorage("stylistModelGender") private var genderRaw = "female"
     @AppStorage("stylistBodyType") private var bodyTypeRaw = ModelBodyType.slim.rawValue
     @AppStorage("stylistSkinTone") private var skinToneRaw = SkinTone.medium.rawValue
@@ -318,6 +319,18 @@ struct ProfileTabView: View {
                                     .padding(.horizontal, 12)
                                     .padding(.vertical, 6)
                                     .background(PoshTheme.Colors.ink.opacity(0.05))
+                                    .cornerRadius(4)
+                            }
+                        } else {
+                            Button {
+                                showPaywall = true
+                            } label: {
+                                Text("UPGRADE")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(PoshTheme.Colors.gold)
+                                    .foregroundColor(.white)
                                     .cornerRadius(4)
                             }
                         }

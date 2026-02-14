@@ -165,7 +165,7 @@ struct StylistView: View {
                                     performAISuggestion()
                                 })
                             case .profile:
-                                ProfileTabView()
+                                ProfileTabView(showPaywall: $showPaywall)
                             }
                         }
                         .frame(maxHeight: 350)

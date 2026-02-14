@@ -105,9 +105,35 @@ struct PaywallView: View {
     
     private var tierSelectionSection: some View {
         VStack(spacing: 16) {
-            if subscriptionService.products.isEmpty {
-                ProgressView()
-                    .padding()
+            if !subscriptionService.isLoaded {
+                VStack(spacing: 16) {
+                    ProgressView()
+                    Text("CONSULTING THE ATELIER...")
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(2)
+                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+            } else if let error = subscriptionService.loadError {
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle")
+                        .font(.system(size: 24))
+                        .foregroundColor(PoshTheme.Colors.gold)
+                    Text(error.uppercased())
+                        .font(.system(size: 10, weight: .bold))
+                        .tracking(1)
+                    Button {
+                        Task { await subscriptionService.fetchProducts() }
+                    } label: {
+                        Text("RETRY CONNECTION")
+                            .font(.system(size: 11, weight: .bold))
+                            .underline()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 200)
+                .foregroundColor(PoshTheme.Colors.ink)
             } else {
                 tierCard(
                     tier: .boutique,

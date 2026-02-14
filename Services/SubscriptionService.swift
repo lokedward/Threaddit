@@ -63,6 +63,9 @@ class SubscriptionService: ObservableObject {
     @Published private(set) var generationCount = 0
     @Published private(set) var monthlyGenerationCount = 0
     
+    @Published private(set) var isLoaded = false
+    @Published private(set) var loadError: String? = nil
+    
     // StoreKit Properties
     @Published private(set) var products: [Product] = []
     private var updates: Task<Void, Never>? = nil
@@ -104,12 +107,21 @@ class SubscriptionService: ObservableObject {
     // MARK: - StoreKit 2 Implementation
     
     func fetchProducts() async {
+        loadError = nil
         do {
             let ids = SubscriptionTier.allCases.compactMap { $0.productId }
             self.products = try await Product.products(for: ids)
             print("📦 StoreKit: Loaded \(products.count) products")
+            
+            if products.isEmpty {
+                print("⚠️ StoreKit: No products found. Check bundle IDs and StoreKit config.")
+                loadError = "Store products configuration missing."
+            }
+            isLoaded = true
         } catch {
             print("❌ StoreKit: Failed to fetch products: \(error)")
+            loadError = "Network error: Store unavailable."
+            isLoaded = true
         }
     }
     
