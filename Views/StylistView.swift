@@ -106,8 +106,15 @@ struct StylistView: View {
                 
                 // Consolidated Bottom Drawer
                 VStack(spacing: 0) {
+                    // Grabber Handle
+                    Capsule()
+                        .fill(PoshTheme.Colors.ink.opacity(0.1))
+                        .frame(width: 36, height: 4)
+                        .padding(.top, 8)
+                    
                     Divider()
                         .background(PoshTheme.Colors.ink.opacity(0.1))
+                        .padding(.top, 8)
                     
                     // Tab Bar
                     HStack(spacing: 0) {
@@ -148,7 +155,7 @@ struct StylistView: View {
                                 .padding(.horizontal, 16)
                         }
                     }
-                    .padding(.top, 16)
+                    .padding(.top, 12)
                     .padding(.bottom, 8)
                     
                     if showingSelection {
@@ -176,6 +183,23 @@ struct StylistView: View {
                 .poshCard()
                 .padding(.horizontal)
                 .padding(.bottom)
+                .gesture(
+                    DragGesture()
+                        .onEnded { value in
+                            let swipeDistance = value.translation.height
+                            if swipeDistance > 50 && showingSelection {
+                                // Swipe down -> Collapse
+                                withAnimation(.spring()) {
+                                    showingSelection = false
+                                }
+                            } else if swipeDistance < -50 && !showingSelection {
+                                // Swipe up -> Expand
+                                withAnimation(.spring()) {
+                                    showingSelection = true
+                                }
+                            }
+                        }
+                )
             }
         }
         .navigationTitle("")
@@ -187,8 +211,8 @@ struct StylistView: View {
             
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 4) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 10))
+                    Image(systemName: "bolt.fill")
+                        .font(.system(size: 9))
                         .foregroundColor(PoshTheme.Colors.gold)
                     
                     Text("\(subscription.remainingGenerations)")
