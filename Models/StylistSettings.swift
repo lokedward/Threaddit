@@ -352,11 +352,15 @@ struct ProfileTabView: View {
 
 // Deprecated: Keeping for backward compatibility until all refs are gone
 struct StylistSettingsView: View {
+    @State private var showPaywall = false
     var onStyleMe: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            ProfileTabView()
+            ProfileTabView(showPaywall: $showPaywall)
+                .sheet(isPresented: $showPaywall) {
+                    PaywallView()
+                }
                 .navigationTitle("Profile Settings")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
