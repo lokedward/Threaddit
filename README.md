@@ -15,7 +15,7 @@ The centerpiece of Threadlist. Leverage **Google Gemini 2.5 Flash** to analyze y
 
 ### 📧 Smart Email Import
 Automate your digital wardrobe building by connecting your GMail account.
-- **Automated Collection**: Scans order confirmations from top retailers (Nordstrom, Nike, ASOS, Zara, and more).
+- **Automated Categorization**: Scans order confirmations from top retailers (Nordstrom, Nike, ASOS, Zara, and more).
 - **Intelligent Parsing**: Extracts product names, brands, sizes, and high-resolution images using custom Google Apps Script integration.
 - **Generic Fallback**: Robust parsing logic to identify products from unknown brands by looking for contextual price and image clues.
 
