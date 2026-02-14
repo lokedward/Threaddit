@@ -54,6 +54,7 @@ struct AddItemView: View {
     @State private var dynamicLoadingMessage = "PROCESSING..."
     @State private var showPaywall = false
     @State private var showingMagicFillExplainer = false
+    @AppStorage("hasSeenMagicFillExplainer") private var hasSeenMagicFillExplainer = false
     
     var canSave: Bool {
         let hasImage = additionMode == .single ? selectedImage != nil : !bulkImageQueue.isEmpty
@@ -148,8 +149,9 @@ struct AddItemView: View {
             }
             .sheet(isPresented: $showingMagicFillExplainer) {
                 MagicFillExplainerView {
+                    hasSeenMagicFillExplainer = true
                     showingMagicFillExplainer = false
-                    showPaywall = true
+                    executeMagicFill()
                 }
                 .presentationDetents([.medium])
             }
@@ -317,11 +319,14 @@ struct AddItemView: View {
     }
 
     private func performMagicFill() {
-        if SubscriptionService.shared.currentTier == .free {
+        if !hasSeenMagicFillExplainer {
             showingMagicFillExplainer = true
             return
         }
-        
+        executeMagicFill()
+    }
+    
+    private func executeMagicFill() {
         // Check Limit
         if !SubscriptionService.shared.canPerformMagicFill() {
             showPaywall = true
@@ -757,7 +762,7 @@ struct PoshTextField: View {
 // MARK: - Premium Explainer View
 
 struct MagicFillExplainerView: View {
-    let onUpgrade: () -> Void
+    let onStart: () -> Void
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
@@ -790,8 +795,8 @@ struct MagicFillExplainerView: View {
                 
                 // CTA
                 VStack(spacing: 16) {
-                    Button(action: onUpgrade) {
-                        Text("UPGRADE TO UNLOCK")
+                    Button(action: onStart) {
+                        Text("TRY MAGIC FILL")
                             .tracking(2)
                             .frame(maxWidth: .infinity)
                     }
@@ -800,7 +805,7 @@ struct MagicFillExplainerView: View {
                     Button {
                         dismiss()
                     } label: {
-                        Text("MAYBE LATER")
+                        Text("NOT NOW")
                             .font(.system(size: 11, weight: .bold))
                             .tracking(1)
                             .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))

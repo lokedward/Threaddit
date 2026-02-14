@@ -46,7 +46,11 @@ class StylistService {
         - "brand": Brand name if visible, otherwise null
         - "size": Size if visible, otherwise null
         - "category": Exactly one of: \(knownCategories.joined(separator: ", "))
-        - "tags": 2-3 concise keywords (strictly 1 word each)
+        - "tags": 3-4 descriptive, unique keywords (1-2 words each). Focus on:
+          1. Textile details (e.g. "twill", "heavyweight", "ribbed")
+          2. Aesthetic DNA (e.g. "dark academia", "gorpcore", "minimalist")
+          3. Technical features (e.g. "water-resistant", "raw-hem")
+          IMPORTANT: Values MUST BE strictly unique from words used in the "name".
         
         NO PREAMBLE. NO MARKDOWN.
         """

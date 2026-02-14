@@ -29,7 +29,7 @@ enum SubscriptionTier: String, Codable, CaseIterable {
     
     var dailyMagicFillLimit: Int {
         switch self {
-        case .free: return 0 // Disabled for Free
+        case .free: return 50 // Now free for all, with 50/day fair use
         case .boutique, .atelier: return 1000
         }
     }

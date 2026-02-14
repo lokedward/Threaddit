@@ -76,8 +76,8 @@ struct PaywallView: View {
     private var benefitsSection: some View {
         VStack(alignment: .leading, spacing: 24) {
             benefitRow(icon: "infinity", title: "Unlimited Wardrobe", subtitle: "Digitize every piece, from couture to core.")
-            benefitRow(icon: "sparkles", title: "Smart Magic Fill", subtitle: "Instant AI enrichment for all your garments.")
             benefitRow(icon: "wand.and.stars", title: "Photorealistic Outfits", subtitle: "Unlimited AI model looks for every occasion.")
+            benefitRow(icon: "crown.fill", title: "Premium Branding", subtitle: "Exclusive high-end model aesthetics.")
         }
         .padding(.horizontal, 30)
     }
