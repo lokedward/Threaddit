@@ -219,7 +219,7 @@ class StylistService {
     }
     
     private func analyzeGarments(images: [Data]) async throws -> String {
-        let model = "gemini-2.5-flash" 
+        let model = "gemini-3.0-pro" 
         
         let prompt = """
         Output a detailed visual description of these clothes as a single outfit. 
