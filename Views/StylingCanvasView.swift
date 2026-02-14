@@ -36,7 +36,30 @@ struct StylingCanvasView: View {
                 endRadius: 400
             )
             
-            if let generated = generatedImage {
+            if isGenerating {
+                // Loading state - Blocall user interaction when generating
+                VStack(spacing: 48) {
+                    BrandLogoView(isAnimating: true, speed: 0.8)
+                        .frame(width: 140, height: 140)
+                    
+                    VStack(spacing: 16) {
+                        Text(dynamicLoadingMessage.uppercased())
+                            .font(.system(size: 11, weight: .bold))
+                            .tracking(4)
+                            .foregroundColor(PoshTheme.Colors.ink)
+                            .multilineTextAlignment(.center)
+                        
+                        Text(usageMessage)
+                            .font(.system(size: 10, weight: .light))
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                    }
+                }
+                .padding(.vertical, 60)
+                .padding(.horizontal, 40)
+                .background(Color.white.opacity(0.95))
+                .poshCard()
+                .transition(.opacity.combined(with: .scale(scale: 0.95)))
+            } else if let generated = generatedImage {
                 // Show generated model photo
                 VStack(spacing: 8) {
                     ZoomableImageView(image: generated)
@@ -98,7 +121,7 @@ struct StylingCanvasView: View {
                     .padding(.horizontal)
                     .padding(.bottom)
                 }
-            } else if selectedItems.isEmpty || !isGenerating {
+            } else {
                 // Combined state for Empty and Ready to Generate to ensure layout stability
                 ZStack {
                     // Central Brand Piece - anchored so it never shifts
@@ -149,29 +172,6 @@ struct StylingCanvasView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
                 }
-            } else if isGenerating {
-                // Loading state
-                VStack(spacing: 48) {
-                    BrandLogoView(isAnimating: true, speed: 0.8)
-                        .frame(width: 140, height: 140)
-                    
-                    VStack(spacing: 16) {
-                        Text(dynamicLoadingMessage.uppercased())
-                            .font(.system(size: 11, weight: .bold))
-                            .tracking(4)
-                            .foregroundColor(PoshTheme.Colors.ink)
-                            .multilineTextAlignment(.center)
-                        
-                        Text(usageMessage)
-                            .font(.system(size: 10, weight: .light))
-                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
-                    }
-                }
-                .padding(.vertical, 60)
-                .padding(.horizontal, 40)
-                .background(Color.white.opacity(0.9))
-                .poshCard()
-                .transition(.opacity.combined(with: .scale(scale: 0.95)))
             }
             
             // Error overlay
