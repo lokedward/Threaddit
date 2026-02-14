@@ -7,10 +7,10 @@ struct BrandLogoView: View {
     var isAnimating: Bool = true
     var speed: Double = 1.5 // Duration of one fade cycle
     
-    @State private var opacity: Double = 0.2
+    @State private var opacity: Double = 0.3
     
     var body: some View {
-        Image("logo_transparent") // Accessing the existing brand asset
+        Image("brand_logo")
             .resizable()
             .aspectRatio(contentMode: .fit)
             .opacity(opacity)
@@ -20,10 +20,10 @@ struct BrandLogoView: View {
                         Animation.easeInOut(duration: speed)
                             .repeatForever(autoreverses: true)
                     ) {
-                        opacity = 0.5
+                        opacity = 0.7
                     }
                 } else {
-                    opacity = 0.3
+                    opacity = 0.5
                 }
             }
     }
