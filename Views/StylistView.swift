@@ -172,7 +172,7 @@ struct StylistView: View {
                         .transition(.opacity.combined(with: .move(edge: .bottom)))
                     }
                 }
-                .background(.ultraThinMaterial)
+                .background(PoshTheme.Colors.canvas)
                 .poshCard()
                 .padding(.horizontal)
                 .padding(.bottom)
