@@ -12,10 +12,9 @@ struct ProcessingOverlayView: View {
             PoshTheme.Colors.ink.opacity(0.15)
                 .ignoresSafeArea()
             
-            VStack(spacing: 24) {
-                ProgressView()
-                    .scaleEffect(1.2)
-                    .tint(PoshTheme.Colors.ink)
+            VStack(spacing: 8) {
+                LivingThreadView(isGenerating: true)
+                    .frame(height: 120)
                 
                 Text(message.uppercased())
                     .font(.system(size: 11, weight: .bold))

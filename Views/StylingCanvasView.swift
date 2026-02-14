@@ -89,24 +89,23 @@ struct StylingCanvasView: View {
                 }
             } else if selectedItems.isEmpty {
                 // Empty state
-                VStack(spacing: 12) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 40, weight: .ultraLight))
-                        .foregroundColor(PoshTheme.Colors.ink)
+                VStack(spacing: 24) {
+                    LivingThreadView(isGenerating: false)
+                        .frame(height: 200)
                     
                     Text("SELECT PIECES TO START STYLING")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(2)
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                        .padding(.top, -40)
                 }
             } else if isGenerating {
                 // Loading state
-                VStack(spacing: 24) {
-                    ProgressView()
-                        .scaleEffect(1.2)
-                        .tint(PoshTheme.Colors.ink)
+                VStack(spacing: 32) {
+                    LivingThreadView(isGenerating: true)
+                        .frame(height: 180)
                     
-                    VStack(spacing: 8) {
+                    VStack(spacing: 12) {
                         Text(dynamicLoadingMessage.uppercased())
                             .font(.system(size: 11, weight: .bold))
                             .tracking(3)
@@ -130,12 +129,8 @@ struct StylingCanvasView: View {
                     Spacer()
                     
                     // Artistic placeholder
-                    Image(systemName: "paintbrush.pointed")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(height: 120)
-                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.15))
-                        .padding(.bottom, 40)
+                    LivingThreadView(isGenerating: false)
+                        .frame(height: 250)
                     
                     Spacer()
                     
