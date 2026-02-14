@@ -106,15 +106,8 @@ struct StylistView: View {
                 
                 // Consolidated Bottom Drawer
                 VStack(spacing: 0) {
-                    // Grabber Handle
-                    Capsule()
-                        .fill(PoshTheme.Colors.ink.opacity(0.1))
-                        .frame(width: 36, height: 4)
-                        .padding(.top, 8)
-                    
                     Divider()
                         .background(PoshTheme.Colors.ink.opacity(0.1))
-                        .padding(.top, 8)
                     
                     // Tab Bar
                     HStack(spacing: 0) {
