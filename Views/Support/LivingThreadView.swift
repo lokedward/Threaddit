@@ -103,10 +103,9 @@ struct AnimatedLogoTView: View {
             )
             .onAppear {
                 withAnimation(
-                    .easeInOut(duration: 2.5 / speedMultiplier)
-                    .delay(delay)
-                    .transition(.opacity)
-                    .repeatForever(autoreverses: true)
+                    Animation.easeInOut(duration: 2.5 / speedMultiplier)
+                        .delay(delay)
+                        .repeatForever(autoreverses: true)
                 ) {
                     writingProgress = 1.0
                 }
