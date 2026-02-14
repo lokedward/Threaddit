@@ -56,12 +56,16 @@ struct StylistView: View {
                         } label: {
                             ZStack {
                                 Circle()
-                                    .fill(PoshTheme.Colors.ink)
-                                    .frame(width: 56, height: 56)
+                                    .fill(Color.white)
+                                    .frame(width: 52, height: 52)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(PoshTheme.Colors.gold.opacity(0.3), lineWidth: 1)
+                                    )
                                     .poshGoldGlow()
                                 
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 24))
+                                Image(systemName: "wand.and.stars")
+                                    .font(.system(size: 20, weight: .light))
                                     .foregroundColor(PoshTheme.Colors.gold)
                             }
                         }
