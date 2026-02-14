@@ -58,7 +58,7 @@ struct StylistView: View {
                                 Circle()
                                     .fill(PoshTheme.Colors.ink)
                                     .frame(width: 56, height: 56)
-                                    .goldGlow()
+                                    .poshGoldGlow()
                                 
                                 Image(systemName: "sparkles")
                                     .font(.system(size: 24))
