@@ -146,12 +146,29 @@ class SubscriptionService: ObservableObject {
     #endif
     
     func purchase(_ tier: SubscriptionTier) async throws {
-        guard let productId = tier.productId,
-              let product = products.first(where: { $0.id == productId }) else {
+        guard let productId = tier.productId else { return }
+        
+        let product = products.first(where: { $0.id == productId })
+        
+        #if DEBUG
+        if product == nil {
+            print("🧪 DEBUG: Simulating purchase for \(tier.rawValue)...")
+            // Add a small artificial delay for realism
+            try await Task.sleep(nanoseconds: 1_500_000_000)
+            withAnimation {
+                self.currentTier = tier
+            }
+            print("✅ DEBUG: Simulated purchase complete.")
+            return
+        }
+        #endif
+        
+        guard let realProduct = product else {
+            print("❌ StoreKit: Product \(productId) not found in store list")
             return
         }
         
-        let result = try await product.purchase()
+        let result = try await realProduct.purchase()
         
         switch result {
         case .success(let verification):
