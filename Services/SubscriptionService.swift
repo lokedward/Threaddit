@@ -5,7 +5,7 @@
 import SwiftUI
 import SwiftData
 import StoreKit
-import Combine
+internal import Combine
 
 enum SubscriptionTier: String, Codable, CaseIterable {
     case free = "Free"
