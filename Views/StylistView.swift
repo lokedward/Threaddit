@@ -9,6 +9,10 @@ struct StylistView: View {
     @Query(sort: \ClothingItem.dateAdded, order: .reverse) private var items: [ClothingItem]
     
     @State private var selectedItems: Set<UUID> = []
+    @State private var showingSelection = true
+    @AppStorage("stylistModelGender") private var genderRaw = "female"
+    @State private var showSettings = false
+    @State private var showingMagicPopup = false
     
     // AI Suggestion State
     @AppStorage("stylistOccasion") private var occasionRaw = StylistOccasion.casual.rawValue

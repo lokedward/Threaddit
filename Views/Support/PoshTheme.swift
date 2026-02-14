@@ -21,7 +21,8 @@ struct PoshTheme {
         static let uiCanvas: UIColor = UIColor(white: 0.99, alpha: 1.0)
         static let uiGold: UIColor = UIColor(red: 0.83, green: 0.68, blue: 0.21, alpha: 1.0)
         
-        static let body: Font.Color = ink.opacity(0.8)
+        static let headline: Color = ink
+        static let body: Color = ink.opacity(0.8)
         
         static let aiGlow: Color = gold.opacity(0.3)
     }
