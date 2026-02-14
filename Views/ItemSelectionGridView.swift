@@ -46,7 +46,7 @@ struct SelectableItemThumbnail: View {
     var body: some View {
         Button(action: action) {
             ZStack(alignment: .topTrailing) {
-                ItemThumbnailView(item: item, showLabel: true)
+                ItemThumbnailView(item: item, showLabel: false)
                     .scaleEffect(isSelected ? 0.95 : 1.0)
                     .overlay(
                         Rectangle()

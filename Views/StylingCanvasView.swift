@@ -14,11 +14,14 @@ struct StylingCanvasView: View {
     @Binding var isGenerating: Bool
     @Binding var isSaved: Bool
     
-    @State private var errorMessage: String?
-    @State private var showUpgradePrompt = false
-    @State private var dynamicLoadingMessage = "CREATING YOUR LOOK"
+    @State private var lastGeneratedItemIds: Set<UUID> = []
     
     let stylistService = StylistService.shared
+    
+    private var hasSelectionChanged: Bool {
+        let currentIds = Set(selectedItems.map { $0.id })
+        return currentIds != lastGeneratedItemIds
+    }
     
     var body: some View {
         ZStack {
@@ -44,16 +47,22 @@ struct StylingCanvasView: View {
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
                         .padding(.bottom, 8)
                     
-                    // Regenerate button
+                    // Regenerate or Reset button
                     HStack(spacing: 16) {
                         Button {
-                            generatedImage = nil
-                            isSaved = false
+                            if hasSelectionChanged {
+                                generateLook()
+                            } else {
+                                withAnimation {
+                                    generatedImage = nil
+                                    isSaved = false
+                                }
+                            }
                         } label: {
                             VStack(spacing: 4) {
-                                Image(systemName: "arrow.triangle.2.circlepath")
+                                Image(systemName: hasSelectionChanged ? "sparkles" : "arrow.triangle.2.circlepath")
                                     .font(.system(size: 20))
-                                Text("TRY NEW LOOK")
+                                Text(hasSelectionChanged ? "GENERATE NEW LOOK" : "TRY NEW LOOK")
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(1.5)
                             }
@@ -216,6 +225,8 @@ struct StylingCanvasView: View {
     func generateLook() {
         guard !selectedItems.isEmpty else { return }
         
+        let currentIds = Set(selectedItems.map { $0.id })
+        
         dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .generation)
         errorMessage = nil
         isGenerating = true
@@ -229,6 +240,7 @@ struct StylingCanvasView: View {
                 
                 await MainActor.run {
                     withAnimation(.spring()) {
+                        self.lastGeneratedItemIds = currentIds
                         self.generatedImage = image
                         self.isGenerating = false
                         self.isSaved = false
