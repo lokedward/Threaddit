@@ -541,45 +541,45 @@ struct DetailsSectionView: View {
     
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack {
-                    Text("Item Details").poshHeadline(size: 20)
-                    Spacer()
-                    
-                    if showExpandButton {
-                        Button { withAnimation { isExpanded.toggle() } } label: {
-                            Image(systemName: isExpanded ? "chevron.up" : "chevron.down").foregroundColor(PoshTheme.Colors.ink)
-                        }
-                    }
-                }
+            HStack(spacing: 12) {
+                Text("Item Details").poshHeadline(size: 20)
+                
+                Spacer()
                 
                 if canMagicFill {
                     Button(action: onMagicFill) {
-                        HStack(spacing: 8) {
+                        HStack(spacing: 6) {
                             Image(systemName: "sparkles")
-                                .font(.system(size: 11, weight: .bold))
+                                .font(.system(size: 9, weight: .bold))
                             Text("AI MAGIC FILL")
-                                .font(.system(size: 11, weight: .bold))
-                                .tracking(1.5)
+                                .font(.system(size: 9, weight: .bold))
+                                .tracking(1)
                         }
                         .foregroundColor(PoshTheme.Colors.ink)
-                        .padding(.vertical, 14)
-                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
                         .background(
                             ZStack {
                                 Color.white
-                                RoundedRectangle(cornerRadius: 8)
+                                Capsule()
                                     .stroke(PoshTheme.Colors.gold.opacity(0.4), lineWidth: 1)
                                 LinearGradient(
                                     colors: [PoshTheme.Colors.gold.opacity(0.12), PoshTheme.Colors.gold.opacity(0.04)],
                                     startPoint: .topLeading,
                                     endPoint: .bottomTrailing
                                 )
+                                .clipShape(Capsule())
                             }
                         )
-                        .cornerRadius(8)
+                        .clipShape(Capsule())
                     }
                     .buttonStyle(.plain)
+                }
+                
+                if showExpandButton {
+                    Button { withAnimation { isExpanded.toggle() } } label: {
+                        Image(systemName: isExpanded ? "chevron.up" : "chevron.down").foregroundColor(PoshTheme.Colors.ink)
+                    }
                 }
             }
             VStack(spacing: 16) {
