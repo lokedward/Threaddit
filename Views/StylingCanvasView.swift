@@ -322,7 +322,7 @@ struct UpgradePromptView: View {
                             VStack(spacing: 4) {
                                 Text("START FREE TRIAL")
                                     .tracking(2)
-                                Text("Then $4.99/month")
+                                Text("Then $6.99/month")
                                     .font(.system(size: 10))
                                     .opacity(0.8)
                             }

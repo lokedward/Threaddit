@@ -105,7 +105,7 @@ struct PaywallView: View {
             
             tierCard(
                 tier: .atelier,
-                price: "$9.99 / mo",
+                price: "$6.99 / mo",
                 tagline: "The Fashion Professional",
                 isPopular: false
             )
