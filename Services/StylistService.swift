@@ -5,6 +5,7 @@ import Foundation
 import SwiftUI
 internal import Combine
 
+@MainActor
 class StylistService {
     static let shared = StylistService()
     private init() {}
@@ -176,7 +177,8 @@ class StylistService {
         
         // Check usage limits
         if !SubscriptionService.shared.canPerformStyleMe() {
-            throw StylistError.limitReached
+            let tier = SubscriptionService.shared.currentTier
+            throw StylistError.limitReached(limit: tier.styleMeLimit, period: tier.limitPeriod == .monthly ? "monthly" : "daily")
         }
         
         // 1. Prepare Images
@@ -509,7 +511,7 @@ enum StylistError: LocalizedError {
     case invalidRequest
     case invalidResponse
     case apiError(String)
-    case limitReached
+    case limitReached(limit: Int, period: String)
     
     var errorDescription: String? {
         switch self {
@@ -525,10 +527,7 @@ enum StylistError: LocalizedError {
             return "Invalid response from outfit generator"
         case .apiError(let message):
             return message
-        case .limitReached:
-            let tier = SubscriptionService.shared.currentTier
-            let limit = tier.styleMeLimit
-            let period = tier.limitPeriod == .monthly ? "monthly" : "daily"
+        case .limitReached(let limit, let period):
             return "You've reached your \(period) limit of \(limit) outfits. Upgrade for more looks!"
         }
     }
