@@ -27,6 +27,7 @@ struct StylistView: View {
     @State private var stylistMessage: String?
     @State private var showMessage = false
     @State private var showPaywall = false
+    @State private var showingUsagePopup = false
     
     @State private var dynamicLoadingMessage = "STYLIST IS THINKING..."
     
@@ -194,6 +195,24 @@ struct StylistView: View {
                         }
                 )
             }
+            
+            if showingUsagePopup {
+                Color.black.opacity(0.01)
+                    .ignoresSafeArea()
+                    .onTapGesture { withAnimation { showingUsagePopup = false } }
+                
+                VStack {
+                    HStack {
+                        Spacer()
+                        usagePopupView
+                            .padding(.top, 50)
+                            .padding(.trailing, 20)
+                    }
+                    Spacer()
+                }
+                .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)), removal: .opacity))
+                .zIndex(100)
+            }
         }
         .navigationTitle("")
         .navigationBarTitleDisplayMode(.inline)
@@ -203,23 +222,87 @@ struct StylistView: View {
             }
             
             ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 4) {
-                    Image(systemName: "bolt.fill")
-                        .font(.system(size: 9))
-                        .foregroundColor(PoshTheme.Colors.gold)
-                    
-                    Text("\(subscription.remainingGenerations)")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(PoshTheme.Colors.ink)
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        showingUsagePopup.toggle()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 9))
+                            .foregroundColor(PoshTheme.Colors.gold)
+                        
+                        Text("\(subscription.remainingGenerations)")
+                            .font(.system(size: 11, weight: .bold, design: .monospaced))
+                            .foregroundColor(PoshTheme.Colors.ink)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(
+                        Capsule()
+                            .stroke(PoshTheme.Colors.gold.opacity(0.2), lineWidth: 1)
+                    )
                 }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(
-                    Capsule()
-                        .stroke(PoshTheme.Colors.gold.opacity(0.2), lineWidth: 1)
-                )
+                .buttonStyle(.plain)
             }
         }
+    }
+    
+    private var usagePopupView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("STYLE ME LIMITS")
+                    .font(.system(size: 10, weight: .bold))
+                    .tracking(1)
+                    .foregroundColor(PoshTheme.Colors.gold)
+                
+                let used = subscription.currentTier.limitPeriod == .monthly ? subscription.monthlyGenerationCount : subscription.generationCount
+                let limit = subscription.currentTier.styleMeLimit
+                
+                Text("\(limit - used) of \(limit) looks available")
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundColor(PoshTheme.Colors.ink)
+            }
+            
+            Divider()
+                .background(PoshTheme.Colors.ink.opacity(0.1))
+            
+            VStack(alignment: .leading, spacing: 6) {
+                Text("PREMIUM TIER")
+                    .font(.system(size: 9, weight: .bold))
+                    .tracking(1)
+                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                
+                HStack {
+                    Text("Boutique Plus")
+                        .font(.system(size: 12, weight: .semibold))
+                    Spacer()
+                    Text("50 / mo")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(PoshTheme.Colors.gold)
+                }
+                
+                Button {
+                    showingUsagePopup = false
+                    showPaywall = true
+                } label: {
+                    Text("UPGRADE NOW")
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1)
+                        .underline()
+                        .foregroundColor(PoshTheme.Colors.ink)
+                }
+                .padding(.top, 4)
+            }
+        }
+        .padding(16)
+        .frame(width: 200)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .fill(Color.white)
+                .poshCard()
+                .shadow(color: Color.black.opacity(0.1), radius: 20, x: 0, y: 10)
+        )
     }
     
     private func performAISuggestion() {

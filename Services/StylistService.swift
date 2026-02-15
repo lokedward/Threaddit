@@ -526,7 +526,10 @@ enum StylistError: LocalizedError {
         case .apiError(let message):
             return message
         case .limitReached:
-            return "You've reached your daily limit of 10 outfits. Upgrade to Premium for unlimited looks!"
+            let tier = SubscriptionService.shared.currentTier
+            let limit = tier.styleMeLimit
+            let period = tier.limitPeriod == .monthly ? "monthly" : "daily"
+            return "You've reached your \(period) limit of \(limit) outfits. Upgrade for more looks!"
         }
     }
 }

@@ -215,13 +215,14 @@ struct StylingCanvasView: View {
     
     private var usageMessage: String {
         let service = SubscriptionService.shared
-        switch service.currentTier {
-        case .free: 
-            return "Using 1 of 3 daily generations"
-        case .boutique:
-            return "Boutique tier: Consuming monthly credit"
-        case .atelier:
-            return "Elite tier: Priority processing"
+        let used = service.currentTier.limitPeriod == .monthly ? service.monthlyGenerationCount : service.generationCount
+        let limit = service.currentTier.styleMeLimit
+        
+        if service.currentTier == .free {
+            return "\(limit - used) of \(limit) monthly looks remaining"
+        } else {
+            let period = service.currentTier.limitPeriod == .monthly ? "month" : "day"
+            return "\(limit - used) of \(limit) looks left this \(period)"
         }
     }
     
