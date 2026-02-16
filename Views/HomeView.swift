@@ -88,6 +88,33 @@ struct HomeView: View {
                                         .padding(.vertical, 8)
                                 }
                             }
+
+                            
+                            // Manage Categories Button
+                            HStack {
+                                Spacer()
+                                NavigationLink {
+                                    CategoryManagementView()
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "folder.badge.gear")
+                                            .font(.system(size: 12))
+                                        Text("MANAGE CATEGORIES")
+                                            .font(.system(size: 11, weight: .bold))
+                                            .tracking(1)
+                                    }
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                                    .padding(.vertical, 10)
+                                    .padding(.horizontal, 16)
+                                    .background(
+                                        Capsule()
+                                            .stroke(PoshTheme.Colors.ink.opacity(0.2), lineWidth: 1)
+                                    )
+                                }
+                                Spacer()
+                            }
+                            .padding(.top, 8)
+                            .padding(.bottom, 32)
                         }
                         
                     }

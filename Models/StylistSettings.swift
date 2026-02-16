@@ -234,7 +234,7 @@ struct StylingTabView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 // Header
-                Text("Tap an occasion and let AI curate your perfect look")
+                Text("Tap an occasion and let our AI stylist curate your perfect look")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .italic()
