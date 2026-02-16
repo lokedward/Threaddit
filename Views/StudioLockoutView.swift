@@ -69,24 +69,14 @@ struct StudioLockoutView: View {
                             )
                     }
                 }
-                
-                Text("\(itemCount) of 3 items added")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
             }
             
             Spacer()
             
             // CTA
-            VStack(spacing: 12) {
-                Text(itemsRemaining == 1 ? "Add 1 more item to unlock" : "Add \(itemsRemaining) more items to unlock")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
-                
-                Text("Visit the Curate tab to add items")
-                    .font(.system(size: 11))
-                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
-            }
+            Text("\(itemCount) of 3 items added")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
             .padding(.bottom, 40)
         }
         .padding(.horizontal, 40)
