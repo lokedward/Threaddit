@@ -43,6 +43,24 @@ struct StylistView: View {
     }
     
     var body: some View {
+        mainContent
+            .sheet(isPresented: $showingOnboarding) {
+                StudioOnboardingView(showPaywall: $showPaywall) {
+                    hasCompletedOnboarding = true
+                    selectedTab = .closet
+                }
+            }
+            .onAppear {
+                // Show onboarding for first-time users who just unlocked the Studio
+                if !hasCompletedOnboarding && items.count >= 3 {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showingOnboarding = true
+                    }
+                }
+            }
+    }
+    
+    private var mainContent: some View {
         ZStack {
             PoshTheme.Colors.canvas.ignoresSafeArea()
             
@@ -254,20 +272,6 @@ struct StylistView: View {
                 }
                 .buttonStyle(.plain)
                 .opacity(items.count >= 3 ? 1 : 0)
-            }
-        }
-        .sheet(isPresented: $showingOnboarding) {
-            StudioOnboardingView(showPaywall: $showPaywall) {
-                hasCompletedOnboarding = true
-                selectedTab = .closet
-            }
-        }
-        .onAppear {
-            // Show onboarding for first-time users who just unlocked the Studio
-            if !hasCompletedOnboarding && items.count >= 3 {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    showingOnboarding = true
-                }
             }
         }
     }
