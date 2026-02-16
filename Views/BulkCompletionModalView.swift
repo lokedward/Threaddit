@@ -36,8 +36,7 @@ struct BulkCompletionModalView: View {
                 VStack(spacing: 12) {
                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                         Text("\(itemsAdded)")
-                            .font(.system(size: 48, weight: .light, design: .serif))
-                            .foregroundColor(PoshTheme.Colors.gold)
+                            .font(.system(size: 24, weight: .light, design: .serif))
                         
                         Text(itemsAdded == 1 ? "ITEM" : "ITEMS")
                             .font(.system(size: 14, weight: .bold))
