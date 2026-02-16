@@ -317,9 +317,9 @@ struct StylistView: View {
                 let selectedClothingItems = items.filter { suggestedIDs.contains($0.id) }
                 if !selectedClothingItems.isEmpty {
                     await MainActor.run {
+                        // Update message but keep transparent overlay (isStyling) active
+                        // instead of switching to canvas loader (isGenerating)
                         self.dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .generation)
-                        self.isStyling = false
-                        self.isGenerating = true
                     }
                     
                     let image = try await StylistService.shared.generateModelPhoto(
@@ -330,7 +330,7 @@ struct StylistView: View {
                     await MainActor.run {
                         withAnimation(.spring()) {
                             self.generatedImage = image
-                            self.isGenerating = false
+                            self.isStyling = false // Dismiss global overlay only when done
                             self.isSaved = false
                             SubscriptionService.shared.recordGeneration()
                         }
