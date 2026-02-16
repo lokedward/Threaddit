@@ -42,176 +42,181 @@ struct StylistView: View {
         ZStack {
             PoshTheme.Colors.canvas.ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // Styling Canvas
-                StylingCanvasView(
-                    selectedItems: items.filter { selectedItems.contains($0.id) },
-                    gender: modelGender,
-                    generatedImage: $generatedImage,
-                    isGenerating: $isGenerating,
-                    isSaved: $isSaved
-                )
-                .frame(maxHeight: .infinity)
-                .overlay {
-                    if isStyling {
-                        ProcessingOverlayView(message: dynamicLoadingMessage)
+            if items.count < 3 {
+                // Lockout Screen
+                StudioLockoutView(itemCount: items.count)
+            } else {
+                VStack(spacing: 0) {
+                    // Styling Canvas
+                    StylingCanvasView(
+                        selectedItems: items.filter { selectedItems.contains($0.id) },
+                        gender: modelGender,
+                        generatedImage: $generatedImage,
+                        isGenerating: $isGenerating,
+                        isSaved: $isSaved
+                    )
+                    .frame(maxHeight: .infinity)
+                    .overlay {
+                        if isStyling {
+                            ProcessingOverlayView(message: dynamicLoadingMessage)
+                        }
                     }
-                }
-                .sheet(isPresented: $showPaywall) {
-                    PaywallView()
-                }
-                
-                // Stylist Message Overlay
-                if showMessage, let message = stylistMessage {
-                    VStack {
-                        HStack(spacing: 12) {
-                            Image(systemName: "quote.opening")
-                                .font(.system(size: 14))
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
-                            
-                            Text(message)
-                                .font(.system(size: 13, weight: .medium, design: .serif))
-                                .italic()
-                                .foregroundColor(PoshTheme.Colors.ink)
-                                .multilineTextAlignment(.leading)
+                    .sheet(isPresented: $showPaywall) {
+                        PaywallView()
+                    }
+                    
+                    // Stylist Message Overlay
+                    if showMessage, let message = stylistMessage {
+                        VStack {
+                            HStack(spacing: 12) {
+                                Image(systemName: "quote.opening")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                                
+                                Text(message)
+                                    .font(.system(size: 13, weight: .medium, design: .serif))
+                                    .italic()
+                                    .foregroundColor(PoshTheme.Colors.ink)
+                                    .multilineTextAlignment(.leading)
+                                
+                                Spacer()
+                                
+                                Button {
+                                    withAnimation(.easeOut) { showMessage = false }
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
+                                        .padding(8)
+                                }
+                            }
+                            .padding(.vertical, 16)
+                            .padding(.horizontal, 20)
+                            .background(
+                                PoshTheme.Colors.stone
+                                    .overlay(
+                                        Rectangle()
+                                            .strokeBorder(PoshTheme.Colors.ink.opacity(0.05), lineWidth: 1)
+                                    )
+                            )
+                            .poshCard()
+                            .padding(.horizontal, 20)
+                            .padding(.top, 10)
                             
                             Spacer()
+                        }
+                        .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
+                        .zIndex(10)
+                    }
+                    
+                    // Consolidated Bottom Drawer
+                    VStack(spacing: 0) {
+                        Divider()
+                            .background(PoshTheme.Colors.ink.opacity(0.1))
+                        
+                        // Tab Bar
+                        HStack(spacing: 0) {
+                            ForEach(StylistTab.allCases) { tab in
+                                Button {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                                        selectedTab = tab
+                                        showingSelection = true
+                                    }
+                                } label: {
+                                    VStack(spacing: 8) {
+                                        Text(tab.rawValue)
+                                            .font(.system(size: 10, weight: selectedTab == tab ? .bold : .medium))
+                                            .tracking(1)
+                                            .foregroundColor(selectedTab == tab ? PoshTheme.Colors.gold : PoshTheme.Colors.ink.opacity(0.4))
+                                        
+                                        // Underline
+                                        Rectangle()
+                                            .fill(selectedTab == tab ? PoshTheme.Colors.gold : Color.clear)
+                                            .frame(height: 2)
+                                            .padding(.horizontal, 20)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                            }
                             
+                            // Collapse/Expand toggle
                             Button {
-                                withAnimation(.easeOut) { showMessage = false }
+                                withAnimation(.spring()) {
+                                    showingSelection.toggle()
+                                }
                             } label: {
-                                Image(systemName: "xmark")
-                                    .font(.system(size: 10, weight: .bold))
+                                Image(systemName: showingSelection ? "chevron.down" : "chevron.up")
+                                    .font(.system(size: 14, weight: .semibold))
                                     .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
-                                    .padding(8)
+                                    .padding(.horizontal, 16)
                             }
                         }
-                        .padding(.vertical, 16)
-                        .padding(.horizontal, 20)
-                        .background(
-                            PoshTheme.Colors.stone
-                                .overlay(
-                                    Rectangle()
-                                        .stroke(PoshTheme.Colors.ink.opacity(0.05), lineWidth: 1)
-                                )
-                        )
-                        .poshCard()
-                        .padding(.horizontal, 20)
-                        .padding(.top, 10)
+                        .padding(.top, 12)
+                        .padding(.bottom, 8)
                         
-                        Spacer()
+                        if showingSelection {
+                            Group {
+                                switch selectedTab {
+                                case .closet:
+                                    ItemSelectionGridView(
+                                        items: items,
+                                        selectedItems: $selectedItems
+                                    )
+                                    .padding(.top, 4)
+                                case .styling:
+                                    StylingTabView(onStyleMe: {
+                                        performAISuggestion()
+                                    })
+                                case .profile:
+                                    ProfileTabView(showPaywall: $showPaywall)
+                                }
+                            }
+                            .frame(maxHeight: 350)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
+                        }
                     }
-                    .transition(.asymmetric(insertion: .move(edge: .top).combined(with: .opacity), removal: .opacity))
-                    .zIndex(10)
+                    .background(PoshTheme.Colors.canvas)
+                    .poshCard()
+                    .padding(.horizontal)
+                    .padding(.bottom)
+                    .gesture(
+                        DragGesture()
+                            .onEnded { value in
+                                let swipeDistance = value.translation.height
+                                if swipeDistance > 50 && showingSelection {
+                                    // Swipe down -> Collapse
+                                    withAnimation(.spring()) {
+                                        showingSelection = false
+                                    }
+                                } else if swipeDistance < -50 && !showingSelection {
+                                    // Swipe up -> Expand
+                                    withAnimation(.spring()) {
+                                        showingSelection = true
+                                    }
+                                }
+                            }
+                    )
                 }
                 
-                // Consolidated Bottom Drawer
-                VStack(spacing: 0) {
-                    Divider()
-                        .background(PoshTheme.Colors.ink.opacity(0.1))
+                if showingUsagePopup {
+                    Color.black.opacity(0.01)
+                        .ignoresSafeArea()
+                        .onTapGesture { withAnimation { showingUsagePopup = false } }
                     
-                    // Tab Bar
-                    HStack(spacing: 0) {
-                        ForEach(StylistTab.allCases) { tab in
-                            Button {
-                                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
-                                    selectedTab = tab
-                                    showingSelection = true
-                                }
-                            } label: {
-                                VStack(spacing: 8) {
-                                    Text(tab.rawValue)
-                                        .font(.system(size: 10, weight: selectedTab == tab ? .bold : .medium))
-                                        .tracking(1)
-                                        .foregroundColor(selectedTab == tab ? PoshTheme.Colors.gold : PoshTheme.Colors.ink.opacity(0.4))
-                                    
-                                    // Underline
-                                    Rectangle()
-                                        .fill(selectedTab == tab ? PoshTheme.Colors.gold : Color.clear)
-                                        .frame(height: 2)
-                                        .padding(.horizontal, 20)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
+                    VStack {
+                        HStack {
+                            Spacer()
+                            usagePopupView
+                                .padding(.top, 50)
+                                .padding(.trailing, 20)
                         }
-                        
-                        // Collapse/Expand toggle
-                        Button {
-                            withAnimation(.spring()) {
-                                showingSelection.toggle()
-                            }
-                        } label: {
-                            Image(systemName: showingSelection ? "chevron.down" : "chevron.up")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
-                                .padding(.horizontal, 16)
-                        }
-                    }
-                    .padding(.top, 12)
-                    .padding(.bottom, 8)
-                    
-                    if showingSelection {
-                        Group {
-                            switch selectedTab {
-                            case .closet:
-                                ItemSelectionGridView(
-                                    items: items,
-                                    selectedItems: $selectedItems
-                                )
-                                .padding(.top, 4)
-                            case .styling:
-                                StylingTabView(onStyleMe: {
-                                    performAISuggestion()
-                                })
-                            case .profile:
-                                ProfileTabView(showPaywall: $showPaywall)
-                            }
-                        }
-                        .frame(maxHeight: 350)
-                        .transition(.opacity.combined(with: .move(edge: .bottom)))
-                    }
-                }
-                .background(PoshTheme.Colors.canvas)
-                .poshCard()
-                .padding(.horizontal)
-                .padding(.bottom)
-                .gesture(
-                    DragGesture()
-                        .onEnded { value in
-                            let swipeDistance = value.translation.height
-                            if swipeDistance > 50 && showingSelection {
-                                // Swipe down -> Collapse
-                                withAnimation(.spring()) {
-                                    showingSelection = false
-                                }
-                            } else if swipeDistance < -50 && !showingSelection {
-                                // Swipe up -> Expand
-                                withAnimation(.spring()) {
-                                    showingSelection = true
-                                }
-                            }
-                        }
-                )
-            }
-            
-            if showingUsagePopup {
-                Color.black.opacity(0.01)
-                    .ignoresSafeArea()
-                    .onTapGesture { withAnimation { showingUsagePopup = false } }
-                
-                VStack {
-                    HStack {
                         Spacer()
-                        usagePopupView
-                            .padding(.top, 50)
-                            .padding(.trailing, 20)
                     }
-                    Spacer()
+                    .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)), removal: .opacity))
+                    .zIndex(100)
                 }
-                .transition(.asymmetric(insertion: .opacity.combined(with: .scale(scale: 0.9, anchor: .topTrailing)), removal: .opacity))
-                .zIndex(100)
             }
         }
         .navigationTitle("")
@@ -244,6 +249,7 @@ struct StylistView: View {
                     )
                 }
                 .buttonStyle(.plain)
+                .opacity(items.count >= 3 ? 1 : 0)
             }
         }
     }
