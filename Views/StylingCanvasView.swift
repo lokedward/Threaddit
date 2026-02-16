@@ -48,6 +48,7 @@ struct StylingCanvasView: View {
                             .tracking(4)
                             .foregroundColor(PoshTheme.Colors.ink)
                             .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
                         
                         Text(usageMessage)
                             .font(.system(size: 10, weight: .light))
