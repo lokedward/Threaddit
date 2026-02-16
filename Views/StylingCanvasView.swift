@@ -266,7 +266,7 @@ struct StylingCanvasView: View {
         
         Task {
             // Save image to disk
-            if let imageID = ImageStorageService.shared.saveImage(image) {
+            if let imageID = await ImageStorageService.shared.saveImage(image) {
                 // Create Outfit
                 let outfit = Outfit(generatedImageID: imageID, items: selectedItems)
                 modelContext.insert(outfit)

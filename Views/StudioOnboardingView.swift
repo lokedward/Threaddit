@@ -263,5 +263,5 @@ struct ClosetTourStepView: View {
 }
 
 #Preview {
-    StudioOnboardingView(showPaywall: .constant(false), onComplete: {})
+    StudioOnboardingView(onComplete: {}, showPaywall: .constant(false))
 }

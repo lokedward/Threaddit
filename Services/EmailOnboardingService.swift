@@ -233,7 +233,7 @@ class EmailOnboardingService: ObservableObject {
             
             // Save image
             let imageID = UUID()
-            ImageStorageService.shared.saveImage(uiImage, withID: imageID)
+            await ImageStorageService.shared.saveImage(uiImage, withID: imageID)
             
             // Create ClothingItem
             let item = ClothingItem(
