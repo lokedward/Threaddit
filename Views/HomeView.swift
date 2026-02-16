@@ -34,61 +34,64 @@ struct HomeView: View {
             if !hasCompletedOnboarding && isWardrobeEmpty {
                 WelcomeOnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
             } else {
-                ScrollView {
-                    LazyVStack(alignment: .leading, spacing: 32) {
-                        // Closet Section
-                        VStack(spacing: 24) {
-                            HStack(alignment: .firstTextBaseline, spacing: 12) {
-                                Text("Your Closet")
-                                     .poshHeadline(size: 24)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        LazyVStack(alignment: .leading, spacing: 32) {
+                            Color.clear.frame(height: 1).id("wardrobe_top")
+                            
+                            // Closet Section
+                            VStack(spacing: 24) {
+                                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                                    Text("Your Closet")
+                                         .poshHeadline(size: 24)
                                 
-                                Text("\(allItems.count)")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
-                                Spacer()
-                                NavigationLink(destination: SearchView()) {
-                                    Text("See All")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(PoshTheme.Colors.ink)
-                                        .padding(.vertical, 8)
-                                        .padding(.horizontal, 16)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 4)
-                                                .stroke(PoshTheme.Colors.gold.opacity(0.5), lineWidth: 1)
-                                        )
+                                    Text("\(allItems.count)")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
+                                    Spacer()
+                                    NavigationLink(destination: SearchView()) {
+                                        Text("See All")
+                                            .font(.system(size: 14, weight: .bold))
+                                            .foregroundColor(PoshTheme.Colors.ink)
+                                            .padding(.vertical, 8)
+                                            .padding(.horizontal, 16)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 4)
+                                                    .stroke(PoshTheme.Colors.gold.opacity(0.5), lineWidth: 1)
+                                            )
+                                    }
                                 }
-                            }
-                            .padding(.horizontal)
+                                .padding(.horizontal)
 
-                            // Favorite Looks Shelf (First in List)
-                            if !outfits.isEmpty {
-                                favoritesShelf
-                                
-                                Rectangle()
-                                    .fill(PoshTheme.Colors.gold)
-                                    .frame(height: 1)
-                                    .opacity(0.2)
-                                    .padding(.horizontal)
-                                    .padding(.vertical, 8)
-                            }
-
-                            ForEach(Array(sortedCategories.enumerated()), id: \.element.id) { index, category in
-                                CategoryShelfView(
-                                    category: category,
-                                    selectedTab: $selectedTab,
-                                    preselectedCategory: $preselectedCategory
-                                )
-                                
-                                if index < sortedCategories.count - 1 {
+                                // Favorite Looks Shelf (First in List)
+                                if !outfits.isEmpty {
+                                    favoritesShelf
+                                    
                                     Rectangle()
-                                        .fill(PoshTheme.Colors.gold) // Assuming this exists, based on "gilded" request and theme context
+                                        .fill(PoshTheme.Colors.gold)
                                         .frame(height: 1)
-                                        .opacity(0.2) // Subtle
+                                        .opacity(0.2)
                                         .padding(.horizontal)
                                         .padding(.vertical, 8)
                                 }
-                            }
 
+                                ForEach(Array(sortedCategories.enumerated()), id: \.element.id) { index, category in
+                                    CategoryShelfView(
+                                        category: category,
+                                        selectedTab: $selectedTab,
+                                        preselectedCategory: $preselectedCategory
+                                    )
+                                    
+                                    if index < sortedCategories.count - 1 {
+                                        Rectangle()
+                                            .fill(PoshTheme.Colors.gold) // Assuming this exists, based on "gilded" request and theme context
+                                            .frame(height: 1)
+                                            .opacity(0.2) // Subtle
+                                            .padding(.horizontal)
+                                            .padding(.vertical, 8)
+                                    }
+                                }
+                            }
                             
                             // Manage Categories Button
                             HStack {
@@ -119,9 +122,14 @@ struct HomeView: View {
                         
                     }
                     .padding(.vertical)
-                }
-                .refreshable {
-                    try? await Task.sleep(nanoseconds: 800_000_000)
+                    .refreshable {
+                        try? await Task.sleep(nanoseconds: 800_000_000)
+                    }
+                    .onReceive(NotificationCenter.default.publisher(for: .scrollToTopWardrobe)) { _ in
+                        withAnimation {
+                            proxy.scrollTo("wardrobe_top", anchor: .top)
+                        }
+                    }
                 }
             }
         }

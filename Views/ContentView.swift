@@ -43,7 +43,20 @@ struct ContentView: View {
     }
     
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: Binding(
+            get: { selectedTab },
+            set: { tappedTab in
+                if tappedTab == selectedTab {
+                    // Tap on same tab -> Scroll to top
+                    if tappedTab == 0 {
+                        NotificationCenter.default.post(name: .scrollToTopWardrobe, object: nil)
+                    } else if tappedTab == 1 {
+                        NotificationCenter.default.post(name: .scrollToTopCurate, object: nil)
+                    }
+                }
+                selectedTab = tappedTab
+            }
+        )) {
             // Tab 1: Wardrobe
             NavigationStack {
                 HomeView(searchText: $searchText, selectedTab: $selectedTab, preselectedCategory: $preselectedCategory)
@@ -96,6 +109,11 @@ struct ContentView: View {
             }
         }
     }
+}
+
+extension Notification.Name {
+    static let scrollToTopWardrobe = Notification.Name("scrollToTopWardrobe")
+    static let scrollToTopCurate = Notification.Name("scrollToTopCurate")
 }
 
 #Preview {

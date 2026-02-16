@@ -572,6 +572,11 @@ struct MainFormView: View {
                         withAnimation { proxy.scrollTo("form_top", anchor: .top) }
                     }
                 }
+                .onReceive(NotificationCenter.default.publisher(for: .scrollToTopCurate)) { _ in
+                    withAnimation {
+                        proxy.scrollTo("form_top", anchor: .top)
+                    }
+                }
             }
         }
     }
