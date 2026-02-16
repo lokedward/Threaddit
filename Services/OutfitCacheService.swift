@@ -28,13 +28,34 @@ class OutfitCacheService {
     
     // MARK: - Key Generation
     
-    /// Generates a unique, stable hash key for a specific combination of items and gender
+    /// Generates a unique, stable hash key for a specific combination of items and gender (for Descriptions)
     func generateKey(for items: [ClothingItem], gender: Gender) -> String {
         let sortedIDs = items.map { $0.id.uuidString }.sorted()
         let genderStr = gender == .male ? "male" : "female"
         let rawKey = "\(sortedIDs.joined(separator: ","))_\(genderStr)"
         
-        // Use SHA256 for a stable, professional, and short file-safe key
+        let inputData = Data(rawKey.utf8)
+        let hash = SHA256.hash(data: inputData)
+        return hash.compactMap { String(format: "%02x", $0) }.joined()
+    }
+    
+    /// Generates a specific key for the final image, including all model settings (Skin, Hair, etc.)
+    func generateImageKey(for items: [ClothingItem], gender: Gender) -> String {
+        let baseKey = generateKey(for: items, gender: gender)
+        
+        let defaults = UserDefaults.standard
+        let settings = [
+            defaults.string(forKey: "stylistBodyType") ?? "",
+            defaults.string(forKey: "stylistSkinTone") ?? "",
+            defaults.string(forKey: "stylistModelHeight") ?? "",
+            defaults.string(forKey: "stylistAgeGroup") ?? "",
+            defaults.string(forKey: "stylistHairColor") ?? "",
+            defaults.string(forKey: "stylistHairStyle") ?? "",
+            defaults.string(forKey: "stylistEnvironment") ?? ""
+        ].joined(separator: "|")
+        
+        let rawKey = "\(baseKey)_\(settings)"
+        
         let inputData = Data(rawKey.utf8)
         let hash = SHA256.hash(data: inputData)
         return hash.compactMap { String(format: "%02x", $0) }.joined()
@@ -62,7 +83,7 @@ class OutfitCacheService {
     // MARK: - Image Cache
     
     func getCachedImage(for items: [ClothingItem], gender: Gender) -> UIImage? {
-        let key = generateKey(for: items, gender: gender)
+        let key = generateImageKey(for: items, gender: gender) // Use Settings-aware Key
         let filePath = cacheDirectory.appendingPathComponent("\(key).jpg")
         
         guard fileManager.fileExists(atPath: filePath.path),
@@ -73,7 +94,7 @@ class OutfitCacheService {
     }
     
     func cacheImage(_ image: UIImage, for items: [ClothingItem], gender: Gender) {
-        let key = generateKey(for: items, gender: gender)
+        let key = generateImageKey(for: items, gender: gender) // Use Settings-aware Key
         let filePath = cacheDirectory.appendingPathComponent("\(key).jpg")
         
         if let data = image.jpegData(compressionQuality: 0.8) {
