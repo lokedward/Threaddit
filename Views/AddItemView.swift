@@ -59,6 +59,10 @@ struct AddItemView: View {
     @State private var showingMagicFillExplainer = false
     @AppStorage("hasSeenMagicFillExplainer") private var hasSeenMagicFillExplainer = false
     
+    // Bulk Upload Completion Tracking
+    @State private var bulkItemsSaved: Int = 0
+    @State private var showBulkCompletionModal = false
+    
     var canSave: Bool {
         let hasImage = additionMode == .single ? selectedImage != nil : !bulkImageQueue.isEmpty
         return hasImage && !name.isEmpty && selectedCategory != nil
@@ -158,6 +162,12 @@ struct AddItemView: View {
                 }
                 .presentationDetents([.medium])
             }
+            .sheet(isPresented: $showBulkCompletionModal) {
+                BulkCompletionModalView(itemsAdded: bulkItemsSaved) {
+                    showBulkCompletionModal = false
+                }
+                .presentationDetents([.medium])
+            }
             .onAppear {
                 if let prefilled = prefilledItems, !prefilled.isEmpty {
                     additionMode = .multiple
@@ -237,6 +247,11 @@ struct AddItemView: View {
                 tagsText = ""
                 
                 if bulkImageQueue.isEmpty {
+                    // Show completion modal if items were saved
+                    if bulkItemsSaved > 0 {
+                        showBulkCompletionModal = true
+                    }
+                    bulkItemsSaved = 0
                     additionMode = .single
                     resetForm()
                 }
@@ -246,6 +261,11 @@ struct AddItemView: View {
     
     private func cancelReview() {
         withAnimation {
+            // Show completion modal if any items were saved before aborting
+            if bulkItemsSaved > 0 {
+                showBulkCompletionModal = true
+            }
+            bulkItemsSaved = 0
             bulkImageQueue.removeAll()
             emailItemsQueue.removeAll()
             additionMode = .single
@@ -296,6 +316,9 @@ struct AddItemView: View {
                         showingSaveAlert = true
                         resetForm()
                     } else {
+                        // Increment bulk items saved counter
+                        bulkItemsSaved += 1
+                        
                         bulkImageQueue.removeFirst()
                         
                         if !emailItemsQueue.isEmpty {
@@ -310,6 +333,12 @@ struct AddItemView: View {
                             // Keep category as is for bulk speed? Or reset?
                             withAnimation { isMetadataExpanded = true }
                             if bulkImageQueue.isEmpty {
+                                // Bulk upload complete - show summary modal
+                                if bulkItemsSaved > 0 {
+                                    showBulkCompletionModal = true
+                                }
+                                // Reset counter for next session
+                                bulkItemsSaved = 0
                                 // Instead of resetting to single, we stay in the mode the user chose
                                 // but we clear the form for the next potential entry
                                 resetForm()

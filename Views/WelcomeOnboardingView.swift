@@ -200,17 +200,6 @@ struct TemplateRow: View {
                                 .tracking(1.2)
                                 .foregroundColor(PoshTheme.Colors.ink)
                                 .fixedSize(horizontal: false, vertical: true)
-                            
-                            // Category count badge
-                            Text("\(categories.count) CATEGORIES")
-                                .font(.system(size: 7, weight: .bold))
-                                .tracking(0.5)
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(PoshTheme.Colors.stone)
-                                .cornerRadius(3)
-                                .fixedSize()
                         }
                         
                         Text(subtitle)
