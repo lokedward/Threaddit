@@ -117,9 +117,9 @@ struct WelcomeStepView: View {
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.7))
                     
                     VStack(alignment: .leading, spacing: 10) {
-                        FeatureRow(icon: "person.fill", text: "Generate outfit photos with your items")
-                        FeatureRow(icon: "wand.and.stars", text: "Get AI styling suggestions for any occasion")
-                        FeatureRow(icon: "square.grid.2x2", text: "Filter items by category for easy selection")
+                        OnboardingFeatureRow(icon: "person.fill", text: "Generate outfit photos with your items")
+                        OnboardingFeatureRow(icon: "wand.and.stars", text: "Get AI styling suggestions for any occasion")
+                        OnboardingFeatureRow(icon: "square.grid.2x2", text: "Filter items by category for easy selection")
                     }
                     .padding(.top, 8)
                 }
@@ -142,7 +142,7 @@ struct WelcomeStepView: View {
     }
 }
 
-struct FeatureRow: View {
+struct OnboardingFeatureRow: View {
     let icon: String
     let text: String
     
@@ -237,9 +237,9 @@ struct ClosetTourStepView: View {
                         .foregroundColor(PoshTheme.Colors.ink)
                     
                     VStack(alignment: .leading, spacing: 10) {
-                        FeatureRow(icon: "hand.tap.fill", text: "CLOSET tab: Manually select your items")
-                        FeatureRow(icon: "sparkles", text: "STYLING tab: Let AI pick your outfit")
-                        FeatureRow(icon: "slider.horizontal.3", text: "Use category filters to browse faster")
+                        OnboardingFeatureRow(icon: "hand.tap.fill", text: "CLOSET tab: Manually select your items")
+                        OnboardingFeatureRow(icon: "sparkles", text: "STYLING tab: Let AI pick your outfit")
+                        OnboardingFeatureRow(icon: "slider.horizontal.3", text: "Use category filters to browse faster")
                     }
                     .padding(.top, 8)
                 }
