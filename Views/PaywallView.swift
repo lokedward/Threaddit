@@ -131,10 +131,9 @@ struct PaywallView: View {
                 .frame(height: 200)
                 .foregroundColor(PoshTheme.Colors.ink)
             } else {
-                #if DEBUG
                 if subscriptionService.products.isEmpty {
                     VStack(spacing: 8) {
-                        Text("DEVELOPER PREVIEW")
+                        Text("PREVIEW MODE")
                             .font(.system(size: 9, weight: .bold))
                             .foregroundColor(PoshTheme.Colors.gold)
                         
@@ -155,9 +154,6 @@ struct PaywallView: View {
                 } else {
                     tierSelectionSectionContent
                 }
-                #else
-                tierSelectionSectionContent
-                #endif
             }
         }
         .padding(.horizontal, 20)

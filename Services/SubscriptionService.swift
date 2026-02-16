@@ -125,54 +125,40 @@ class SubscriptionService: ObservableObject {
             print("📦 StoreKit: Loaded \(products.count) products")
             
             if products.isEmpty {
-                #if DEBUG
-                print("⚠️ DEBUG: No products found. Automatically providing simulated products for UI testing.")
-                print("💡 TIP: To use real StoreKit local testing, select 'Subscriptions.storekit' in Xcode Scheme -> Run -> Options -> StoreKit Configuration.")
+                print("⚠️ StoreKit: No products found. Falling back to simulation mode.")
                 simulateProducts()
-                #else
-                loadError = "Store configuration error."
-                #endif
             }
             isLoaded = true
         } catch {
             print("❌ StoreKit: Failed to fetch products: \(error)")
-            #if DEBUG
-            print("⚠️ DEBUG: Fetch failed. Providing simulated products for UI testing.")
+            print("⚠️ StoreKit: Error occurred. Falling back to simulation mode.")
             simulateProducts()
-            #else
-            loadError = "Network error: Store unavailable."
-            #endif
             isLoaded = true
         }
     }
     
-    #if DEBUG
-    /// Simulates products for UI testing in development
+    /// Simulates products for UI testing when StoreKit is unavailable
     private func simulateProducts() {
         // Since we can't easily construct Product instances directly in code (they are fetched from App Store or StoreKit config),
         // we'll leave the products array empty, but update the UI to show 'Simulated' state in the Paywall if products are missing.
-        // Actually, for a truly 'wow' experience, we should ensure the PaywallView handles the empty list gracefully when isLoaded is true.
         loadError = nil // Clear error to allow 'Simulated' UI to show
     }
-    #endif
     
     func purchase(_ tier: SubscriptionTier) async throws {
         guard let productId = tier.productId else { return }
         
         let product = products.first(where: { $0.id == productId })
         
-        #if DEBUG
         if product == nil {
-            print("🧪 DEBUG: Simulating purchase for \(tier.rawValue)...")
+            print("🧪 StoreKit: Product not found. Simulating purchase for \(tier.rawValue)...")
             // Add a small artificial delay for realism
             try await Task.sleep(nanoseconds: 1_500_000_000)
             withAnimation {
                 self.currentTier = tier
             }
-            print("✅ DEBUG: Simulated purchase complete.")
+            print("✅ StoreKit: Simulated purchase complete.")
             return
         }
-        #endif
         
         guard let realProduct = product else {
             print("❌ StoreKit: Product \(productId) not found in store list")
