@@ -16,104 +16,107 @@ struct WelcomeOnboardingView: View {
         ZStack {
             PoshTheme.Colors.canvas.ignoresSafeArea()
             
-            ScrollView {
-                VStack(spacing: 40) {
-                    // Top Navigation
-                    HStack {
-                        Spacer()
-                        Button {
-                            withAnimation { hasCompletedOnboarding = true }
-                        } label: {
-                            Text("SKIP")
-                                .font(.system(size: 10, weight: .bold))
-                                .tracking(1)
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
-                        }
+            VStack(spacing: 0) {
+                // Hero Header with Gold Accents
+                VStack(spacing: 6) {
+                    HStack(spacing: 0) {
+                        Text("Your ")
+                            .poshHeadline(size: 28)
+                        Text("Digital")
+                            .poshHeadline(size: 28)
+                            .foregroundColor(PoshTheme.Colors.gold)
+                        Text(" Wardrobe")
+                            .poshHeadline(size: 28)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.top, 20)
+                    .multilineTextAlignment(.center)
                     
-                    // Hero Header
-                    VStack(spacing: 8) {
-                        Text("Your Digital Wardrobe")
-                            .poshHeadline(size: 32)
-                            .multilineTextAlignment(.center)
-                        
-                        Text("BUILD YOUR THREADLIST")
-                            .font(.system(size: 10, weight: .bold))
+                    HStack(spacing: 0) {
+                        Text("BUILD YOUR ")
+                            .font(.system(size: 9, weight: .bold))
                             .tracking(3)
                             .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                        Text("THREADLIST")
+                            .font(.system(size: 9, weight: .bold))
+                            .tracking(3)
+                            .foregroundColor(PoshTheme.Colors.gold)
                     }
-                    .padding(.horizontal)
+                }
+                .padding(.top, 60)
+                .padding(.horizontal)
+                
+                Spacer(minLength: 20)
+                
+                // Starter Paths (no header)
+                VStack(spacing: 14) {
+                    TemplateRow(
+                        title: "Classic Essentials",
+                        subtitle: "Perfect for everyday basics & versatile pieces",
+                        categories: ["Tops", "Bottoms", "Outerwear", "Shoes"],
+                        icon: "square.grid.2x2",
+                        isSelected: selectedTemplates.contains("Classic Essentials"),
+                        onToggle: { toggleTemplate("Classic Essentials") }
+                    )
                     
-                    // Starter Paths
-                    VStack(alignment: .leading, spacing: 24) {
-                        Text("SELECT YOUR WARDROBE STYLE")
-                            .font(.system(size: 12, weight: .bold))
-                            .tracking(2)
-                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
-                            .padding(.horizontal)
-                        
-                        VStack(spacing: 20) {
-                            TemplateRow(
-                                title: "Classic Essentials",
-                                subtitle: "Perfect for everyday basics & versatile pieces",
-                                categories: ["Tops", "Bottoms", "Outerwear", "Shoes"],
-                                icon: "square.grid.2x2",
-                                isSelected: selectedTemplates.contains("Classic Essentials"),
-                                onToggle: { toggleTemplate("Classic Essentials") }
-                            )
-                            
-                            TemplateRow(
-                                title: "Athleisure",
-                                subtitle: "For active lifestyles & comfortable style",
-                                categories: ["Activewear", "Sneakers", "Performance", "Athleisure"],
-                                icon: "figure.run",
-                                isSelected: selectedTemplates.contains("Athleisure"),
-                                onToggle: { toggleTemplate("Athleisure") }
-                            )
-                            
-                            TemplateRow(
-                                title: "Dressy & Refined",
-                                subtitle: "Elevated pieces for special occasions",
-                                categories: ["Formal", "Blazers", "Dress Shoes", "Accessories"],
-                                icon: "star.fill",
-                                isSelected: selectedTemplates.contains("Dressy & Refined"),
-                                onToggle: { toggleTemplate("Dressy & Refined") }
-                            )
-                        }
-                        .padding(.horizontal)
-                    }
+                    TemplateRow(
+                        title: "Athleisure",
+                        subtitle: "For active lifestyles & comfortable style",
+                        categories: ["Activewear", "Sneakers", "Performance", "Athleisure"],
+                        icon: "figure.run",
+                        isSelected: selectedTemplates.contains("Athleisure"),
+                        onToggle: { toggleTemplate("Athleisure") }
+                    )
                     
-                    // Footer Hint
+                    TemplateRow(
+                        title: "Dressy & Refined",
+                        subtitle: "Elevated pieces for special occasions",
+                        categories: ["Formal", "Blazers", "Dress Shoes", "Accessories"],
+                        icon: "star.fill",
+                        isSelected: selectedTemplates.contains("Dressy & Refined"),
+                        onToggle: { toggleTemplate("Dressy & Refined") }
+                    )
+                }
+                .padding(.horizontal, 20)
+                
+                Spacer(minLength: 20)
+                
+                // Footer with CTA and Skip
+                VStack(spacing: 16) {
                     if selectedTemplates.isEmpty {
                         Text("Choose a style to organize your wardrobe with custom categories.")
-                            .poshBody(size: 13)
+                            .poshBody(size: 12)
                             .opacity(0.5)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
-                            .padding(.bottom, 40)
                     } else {
+                        // Selection count
+                        Text("\(selectedTemplates.count) style\(selectedTemplates.count > 1 ? "s" : "") selected")
+                            .font(.system(size: 11, weight: .medium))
+                            .tracking(1)
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                        
                         // CTA Button
-                        VStack(spacing: 12) {
-                            Text("\(selectedTemplates.count) style\(selectedTemplates.count > 1 ? "s" : "") selected")
-                                .font(.system(size: 11, weight: .medium))
-                                .tracking(1)
-                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
-                            
-                            Button {
-                                finalizeOnboarding()
-                            } label: {
-                                Text("BUILD MY CLOSET")
-                                    .tracking(2)
-                            }
-                            .poshButton()
+                        Button {
+                            finalizeOnboarding()
+                        } label: {
+                            Text("BUILD MY CLOSET")
+                                .tracking(2)
                         }
-                        .padding(.horizontal)
-                        .padding(.bottom, 40)
+                        .poshButton()
+                        .padding(.horizontal, 20)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                     }
+                    
+                    // Skip button
+                    Button {
+                        withAnimation { hasCompletedOnboarding = true }
+                    } label: {
+                        Text("SKIP FOR NOW")
+                            .font(.system(size: 10, weight: .bold))
+                            .tracking(1)
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
+                    }
                 }
+                .padding(.bottom, 50)
                 .animation(.spring(), value: selectedTemplates)
             }
         }
@@ -185,36 +188,36 @@ struct TemplateRow: View {
         Button {
             onToggle()
         } label: {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 14) {
                     // Icon
                     Image(systemName: icon)
-                        .font(.system(size: 24, weight: .light))
+                        .font(.system(size: 20, weight: .light))
                         .foregroundColor(PoshTheme.Colors.ink)
-                        .frame(width: 56, height: 56)
+                        .frame(width: 48, height: 48)
                         .background(PoshTheme.Colors.stone)
                         .clipShape(Circle())
                     
-                    VStack(alignment: .leading, spacing: 6) {
-                        HStack(spacing: 8) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack(spacing: 6) {
                             Text(title.uppercased())
-                                .font(.system(size: 13, weight: .bold))
-                                .tracking(1.5)
+                                .font(.system(size: 12, weight: .bold))
+                                .tracking(1.2)
                                 .foregroundColor(PoshTheme.Colors.ink)
                             
                             // Category count badge
                             Text("\(categories.count) CATEGORIES")
-                                .font(.system(size: 8, weight: .bold))
+                                .font(.system(size: 7, weight: .bold))
                                 .tracking(0.5)
                                 .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 3)
+                                .padding(.horizontal, 5)
+                                .padding(.vertical, 2)
                                 .background(PoshTheme.Colors.stone)
-                                .cornerRadius(4)
+                                .cornerRadius(3)
                         }
                         
                         Text(subtitle)
-                            .font(.system(size: 12))
+                            .font(.system(size: 11))
                             .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                             .lineLimit(2)
                     }
@@ -224,38 +227,38 @@ struct TemplateRow: View {
                     // Toggle Circle
                     ZStack {
                         Circle()
-                            .strokeBorder(isSelected ? PoshTheme.Colors.ink : PoshTheme.Colors.ink.opacity(0.2), lineWidth: 2)
-                            .frame(width: 28, height: 28)
+                            .strokeBorder(isSelected ? PoshTheme.Colors.gold : PoshTheme.Colors.ink.opacity(0.2), lineWidth: 2)
+                            .frame(width: 26, height: 26)
                         
                         if isSelected {
                             Circle()
-                                .fill(PoshTheme.Colors.ink)
-                                .frame(width: 16, height: 16)
+                                .fill(PoshTheme.Colors.gold)
+                                .frame(width: 14, height: 14)
                         }
                     }
                 }
                 
                 // Category tags
-                HStack(spacing: 8) {
+                HStack(spacing: 6) {
                     ForEach(categories, id: \.self) { category in
                         Text(category)
-                            .font(.system(size: 9, weight: .medium))
+                            .font(.system(size: 8, weight: .medium))
                             .foregroundColor(PoshTheme.Colors.ink.opacity(0.7))
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
                             .background(PoshTheme.Colors.stone.opacity(0.5))
-                            .cornerRadius(6)
+                            .cornerRadius(5)
                     }
                 }
             }
-            .padding(20)
+            .padding(16)
             .background(Color.white)
             .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .strokeBorder(isSelected ? PoshTheme.Colors.ink.opacity(0.15) : Color.clear, lineWidth: 2)
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(isSelected ? PoshTheme.Colors.gold.opacity(0.3) : Color.clear, lineWidth: 2)
             )
-            .cornerRadius(16)
-            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 4)
+            .cornerRadius(14)
+            .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
         }
         .buttonStyle(.plain)
     }
