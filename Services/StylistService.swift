@@ -274,7 +274,7 @@ class StylistService {
         
         let fullPrompt = """
         <IMAGE_GENERATION_REQUEST>
-        \(framing.promptDescription)
+        Editorial fashion photography\(framing.promptDescription) shot
         Model: \(ageGroup.promptDescription) \(height.promptDescription) \(genderStr) model, \(skinTone.promptDescription), \(bodyType.promptDescription).
         Hair: \(hairColor.rawValue) \(hairStyle.rawValue) hair.
         Outfit: \(description).
