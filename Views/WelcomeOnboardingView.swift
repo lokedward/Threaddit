@@ -77,16 +77,16 @@ struct WelcomeOnboardingView: View {
                     } else {
                         // Starter Paths
                         VStack(alignment: .leading, spacing: 24) {
-                            Text("CHOOSE A FIT")
-                                .font(.system(size: 11, weight: .bold))
+                            Text("SELECT YOUR WARDROBE STYLE")
+                                .font(.system(size: 12, weight: .bold))
                                 .tracking(2)
                                 .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
                                 .padding(.horizontal)
                             
-                            VStack(spacing: 16) {
+                            VStack(spacing: 20) {
                                 TemplateRow(
-                                    title: "Minimalist Capsule",
-                                    subtitle: "Tops, Bottoms, Outerwear, Shoes",
+                                    title: "Classic Essentials",
+                                    subtitle: "Perfect for everyday basics & versatile pieces",
                                     categories: ["Tops", "Bottoms", "Outerwear", "Shoes"],
                                     icon: "square.grid.2x2",
                                     onSelect: { name, cats in
@@ -96,10 +96,10 @@ struct WelcomeOnboardingView: View {
                                 )
                                 
                                 TemplateRow(
-                                    title: "The Weekend Edit",
-                                    subtitle: "Denim, Knits, Accessories, Loungewear",
-                                    categories: ["Denim", "Knits", "Accessories", "Loungewear"],
-                                    icon: "leaf",
+                                    title: "Athleisure",
+                                    subtitle: "For active lifestyles & comfortable style",
+                                    categories: ["Activewear", "Sneakers", "Performance", "Athleisure"],
+                                    icon: "figure.run",
                                     onSelect: { name, cats in
                                         selectedTemplate = name
                                         pendingCategories = cats
@@ -107,10 +107,10 @@ struct WelcomeOnboardingView: View {
                                 )
                                 
                                 TemplateRow(
-                                    title: "Modern Executive",
-                                    subtitle: "Tailoring, Shirts, Formal, Bags",
-                                    categories: ["Tailoring", "Shirts", "Formal", "Bags"],
-                                    icon: "briefcase",
+                                    title: "Dressy & Refined",
+                                    subtitle: "Elevated pieces for special occasions",
+                                    categories: ["Formal", "Blazers", "Dress Shoes", "Accessories"],
+                                    icon: "star.fill",
                                     onSelect: { name, cats in
                                         selectedTemplate = name
                                         pendingCategories = cats
@@ -124,9 +124,11 @@ struct WelcomeOnboardingView: View {
                     
                     // Footer Hint
                     if selectedTemplate == nil {
-                        Text("Start by building out categories for your digital wardrobe.")
-                            .poshBody(size: 12)
-                            .opacity(0.4)
+                        Text("Choose a style to organize your wardrobe with custom categories.")
+                            .poshBody(size: 13)
+                            .opacity(0.5)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
                             .padding(.bottom, 40)
                     }
                 }
@@ -171,34 +173,63 @@ struct TemplateRow: View {
             let generator = UIImpactFeedbackGenerator(style: .light)
             generator.impactOccurred()
             
-            onSelect(title.replacingOccurrences(of: " Capsule", with: "").replacingOccurrences(of: "The ", with: "").replacingOccurrences(of: " Edit", with: ""), categories)
+            onSelect(title, categories)
         } label: {
-            HStack(spacing: 16) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .light))
-                    .foregroundColor(PoshTheme.Colors.ink)
-                    .frame(width: 44, height: 44)
-                    .background(PoshTheme.Colors.stone)
-                    .clipShape(Circle())
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(title.uppercased())
-                        .font(.system(size: 11, weight: .bold))
-                        .tracking(1)
+            VStack(alignment: .leading, spacing: 16) {
+                HStack(spacing: 16) {
+                    // Icon
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .light))
                         .foregroundColor(PoshTheme.Colors.ink)
+                        .frame(width: 56, height: 56)
+                        .background(PoshTheme.Colors.stone)
+                        .clipShape(Circle())
                     
-                    Text(subtitle)
-                        .font(.system(size: 10))
-                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(spacing: 8) {
+                            Text(title.uppercased())
+                                .font(.system(size: 13, weight: .bold))
+                                .tracking(1.5)
+                                .foregroundColor(PoshTheme.Colors.ink)
+                            
+                            // Category count badge
+                            Text("\(categories.count) CATEGORIES")
+                                .font(.system(size: 8, weight: .bold))
+                                .tracking(0.5)
+                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.5))
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 3)
+                                .background(PoshTheme.Colors.stone)
+                                .cornerRadius(4)
+                        }
+                        
+                        Text(subtitle)
+                            .font(.system(size: 12))
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                            .lineLimit(2)
+                    }
+                    
+                    Spacer()
+                    
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(PoshTheme.Colors.ink.opacity(0.3))
+                        .font(.system(size: 16, weight: .semibold))
                 }
                 
-                Spacer()
-                
-                Image(systemName: "chevron.right")
-                    .foregroundColor(PoshTheme.Colors.ink.opacity(0.2))
-                    .font(.system(size: 14))
+                // Category tags
+                HStack(spacing: 8) {
+                    ForEach(categories, id: \.self) { category in
+                        Text(category)
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(PoshTheme.Colors.ink.opacity(0.7))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 4)
+                            .background(PoshTheme.Colors.stone.opacity(0.5))
+                            .cornerRadius(6)
+                    }
+                }
             }
-            .padding()
+            .padding(20)
             .background(Color.white)
             .poshCard()
         }
