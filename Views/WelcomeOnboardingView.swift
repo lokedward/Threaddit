@@ -184,7 +184,7 @@ struct TemplateRow: View {
             onToggle()
         } label: {
             VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 14) {
+                HStack(alignment: .top, spacing: 14) {
                     // Icon
                     Image(systemName: icon)
                         .font(.system(size: 20, weight: .light))
@@ -193,12 +193,13 @@ struct TemplateRow: View {
                         .background(PoshTheme.Colors.stone)
                         .clipShape(Circle())
                     
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        HStack(alignment: .top, spacing: 6) {
                             Text(title.uppercased())
                                 .font(.system(size: 12, weight: .bold))
                                 .tracking(1.2)
                                 .foregroundColor(PoshTheme.Colors.ink)
+                                .fixedSize(horizontal: false, vertical: true)
                             
                             // Category count badge
                             Text("\(categories.count) CATEGORIES")
@@ -209,15 +210,16 @@ struct TemplateRow: View {
                                 .padding(.vertical, 2)
                                 .background(PoshTheme.Colors.stone)
                                 .cornerRadius(3)
+                                .fixedSize()
                         }
                         
                         Text(subtitle)
                             .font(.system(size: 11))
                             .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     
-                    Spacer()
+                    Spacer(minLength: 8)
                     
                     // Toggle Circle
                     ZStack {
