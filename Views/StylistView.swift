@@ -31,6 +31,10 @@ struct StylistView: View {
     
     @State private var dynamicLoadingMessage = "STYLIST IS THINKING..."
     
+    // Onboarding State
+    @AppStorage("hasCompletedStudioOnboarding") private var hasCompletedOnboarding = false
+    @State private var showingOnboarding = false
+    
     @AppStorage("stylistModelGender") private var genderRaw = "female"
     
     // Computed property to sync local state with AppStorage
@@ -169,7 +173,7 @@ struct StylistView: View {
                                     StylingTabView(onStyleMe: {
                                         performAISuggestion()
                                     })
-                                case .profile:
+                                case .model:
                                     ProfileTabView(showPaywall: $showPaywall)
                                 }
                             }
@@ -250,6 +254,20 @@ struct StylistView: View {
                 }
                 .buttonStyle(.plain)
                 .opacity(items.count >= 3 ? 1 : 0)
+            }
+        }
+        .sheet(isPresented: $showingOnboarding) {
+            StudioOnboardingView(showPaywall: $showPaywall) {
+                hasCompletedOnboarding = true
+                selectedTab = .closet
+            }
+        }
+        .onAppear {
+            // Show onboarding for first-time users who just unlocked the Studio
+            if !hasCompletedOnboarding && items.count >= 3 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                    showingOnboarding = true
+                }
             }
         }
     }

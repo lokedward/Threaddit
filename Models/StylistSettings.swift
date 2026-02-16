@@ -103,7 +103,7 @@ enum StylingDensity: String, CaseIterable, Identifiable {
 enum StylistTab: String, CaseIterable, Identifiable {
     case closet = "CLOSET"
     case styling = "STYLING"
-    case profile = "PROFILE"
+    case model = "MODEL"
     
     var id: String { rawValue }
 }
@@ -121,96 +121,149 @@ struct StylingTabView: View {
     
     var onStyleMe: () -> Void
     
+    // Occasion presets with visual styling
+    private let occasionPresets: [(occasion: StylistOccasion, icon: String, gradient: [Color], subtitle: String)] = [
+        (.dateNight, "heart.fill", [Color(red: 0.9, green: 0.3, blue: 0.4), Color(red: 0.95, green: 0.5, blue: 0.6)], "Romantic & Confident"),
+        (.professional, "briefcase.fill", [Color(red: 0.2, green: 0.4, blue: 0.7), Color(red: 0.4, green: 0.6, blue: 0.9)], "Polished & Put-Together"),
+        (.casual, "sun.max.fill", [Color(red: 0.95, green: 0.7, blue: 0.3), Color(red: 0.98, green: 0.85, blue: 0.5)], "Relaxed & Effortless"),
+        (.vacation, "airplane", [Color(red: 0.3, green: 0.7, blue: 0.9), Color(red: 0.5, green: 0.85, blue: 0.95)], "Adventure Ready"),
+        (.formal, "sparkles", [Color(red: 0.5, green: 0.3, blue: 0.7), Color(red: 0.7, green: 0.5, blue: 0.85)], "Elegant & Sophisticated"),
+        (.gym, "figure.run", [Color(red: 0.3, green: 0.8, blue: 0.4), Color(red: 0.5, green: 0.9, blue: 0.6)], "Active & Dynamic")
+    ]
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                Text("Define your vibe and let our AI stylist curate the perfect ensemble for you.")
+                // Header
+                Text("Tap an occasion and let AI curate your perfect look")
                     .font(.system(size: 12))
                     .foregroundColor(.secondary)
                     .italic()
                     .padding(.bottom, -5)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("TARGET OCCASION")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(PoshTheme.Colors.gold)
-                    
-                    Picker("Occasion", selection: $occasionRaw) {
-                        ForEach(StylistOccasion.allCases) { occ in
-                            Text(occ.rawValue).tag(occ.rawValue)
+                
+                // Occasion Preset Cards
+                VStack(spacing: 12) {
+                    ForEach(Array(occasionPresets.chunked(into: 2)), id: \.first!.occasion) { pair in
+                        HStack(spacing: 12) {
+                            ForEach(pair, id: \.occasion) { preset in
+                                OccasionPresetCard(
+                                    title: preset.occasion.rawValue.uppercased(),
+                                    subtitle: preset.subtitle,
+                                    icon: preset.icon,
+                                    gradient: preset.gradient,
+                                    isSelected: occasionRaw == preset.occasion.rawValue
+                                ) {
+                                    occasionRaw = preset.occasion.rawValue
+                                    onStyleMe()
+                                }
+                            }
                         }
-                    }
-                    .pickerStyle(.menu)
-                    .accentColor(PoshTheme.Colors.ink)
-                    
-                    if occasionRaw == StylistOccasion.custom.rawValue {
-                        TextField("E.g. Vintage Italian Summer", text: $customOccasion)
-                            .textFieldStyle(.roundedBorder)
                     }
                 }
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("STYLE PARAMETERS")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(PoshTheme.Colors.gold)
-                    
-                    HStack {
-                        Text("Vibe")
-                            .font(.system(size: 14))
-                        Spacer()
-                        Picker("Vibe", selection: $vibeRaw) {
-                            ForEach(StyleVibe.allCases) { vibe in
-                                Text(vibe.rawValue).tag(vibe.rawValue)
-                            }
-                        }
-                        .accentColor(PoshTheme.Colors.ink)
-                    }
-                    
-                    HStack {
-                        Text("Density")
-                            .font(.system(size: 14))
-                        Spacer()
-                        Picker("Density", selection: $densityRaw) {
-                            ForEach(StylingDensity.allCases) { density in
-                                Text(density.rawValue).tag(density.rawValue)
-                            }
-                        }
-                        .accentColor(PoshTheme.Colors.ink)
-                    }
-                }
+                Divider()
+                    .padding(.vertical, 8)
                 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("MOOD (OPTIONAL)")
+                // Custom Occasion Option
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("CUSTOM OCCASION")
                         .font(.system(size: 10, weight: .bold))
                         .tracking(1)
                         .foregroundColor(PoshTheme.Colors.gold)
                     
-                    TextField("E.g. monochromatic colors, oversized fit...", text: $mood, axis: .vertical)
+                    TextField("E.g. Vintage Italian Summer, Art Gallery Opening...", text: $customOccasion, axis: .vertical)
                         .font(.system(size: 14))
                         .lineLimit(2...3)
-                        .padding(10)
+                        .padding(12)
                         .background(PoshTheme.Colors.canvas)
                         .cornerRadius(8)
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(PoshTheme.Colors.border, lineWidth: 0.5)
                         )
-                }
-                
-                Button(action: onStyleMe) {
-                    HStack {
-                        Image(systemName: "sparkles")
-                        Text("STYLE ME NOW")
-                            .tracking(2)
+                    
+                    Button(action: {
+                        if !customOccasion.isEmpty {
+                            occasionRaw = StylistOccasion.custom.rawValue
+                            onStyleMe()
+                        }
+                    }) {
+                        HStack {
+                            Image(systemName: "sparkles")
+                            Text("STYLE FOR CUSTOM OCCASION")
+                                .tracking(1.5)
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .frame(maxWidth: .infinity)
+                    .poshButton()
+                    .disabled(customOccasion.isEmpty)
+                    .opacity(customOccasion.isEmpty ? 0.5 : 1.0)
                 }
-                .poshButton()
-                .padding(.top, 10)
             }
             .padding()
+        }
+    }
+}
+
+// MARK: - Occasion Preset Card
+
+struct OccasionPresetCard: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+    let gradient: [Color]
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            VStack(alignment: .leading, spacing: 8) {
+                HStack {
+                    Image(systemName: icon)
+                        .font(.system(size: 22))
+                        .foregroundColor(.white)
+                    Spacer()
+                }
+                
+                Spacer()
+                
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 11, weight: .bold))
+                        .tracking(1)
+                        .foregroundColor(.white)
+                    
+                    Text(subtitle)
+                        .font(.system(size: 9))
+                        .foregroundColor(.white.opacity(0.9))
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity)
+            .frame(height: 100)
+            .background(
+                LinearGradient(
+                    gradient: Gradient(colors: gradient),
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .cornerRadius(12)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(isSelected ? PoshTheme.Colors.gold : Color.clear, lineWidth: 3)
+            )
+            .shadow(color: Color.black.opacity(0.15), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// Helper extension for chunking array
+extension Array {
+    func chunked(into size: Int) -> [[Element]] {
+        stride(from: 0, to: count, by: size).map {
+            Array(self[$0..<Swift.min($0 + size, count)])
         }
     }
 }
