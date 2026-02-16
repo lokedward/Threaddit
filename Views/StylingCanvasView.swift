@@ -76,14 +76,8 @@ struct StylingCanvasView: View {
                     // Regenerate or Reset button
                     HStack(spacing: 16) {
                         Button {
-                            if hasSelectionChanged {
-                                generateLook()
-                            } else {
-                                withAnimation {
-                                    generatedImage = nil
-                                    isSaved = false
-                                }
-                            }
+                            // Always regenerate a new look
+                            generateLook()
                         } label: {
                             VStack(spacing: 4) {
                                 Image(systemName: hasSelectionChanged ? "sparkles" : "arrow.triangle.2.circlepath")
