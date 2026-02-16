@@ -303,7 +303,7 @@ struct ProfileTabView: View {
                                 Text(type.rawValue).tag(type.rawValue)
                             }
                         }
-                        .accentColor(PoshTheme.Colors.ink)
+                        .tint(PoshTheme.Colors.ink)
                     }
                     
                     Spacer()
@@ -319,7 +319,7 @@ struct ProfileTabView: View {
                                 Text(h.rawValue).tag(h.rawValue)
                             }
                         }
-                        .accentColor(PoshTheme.Colors.ink)
+                        .tint(PoshTheme.Colors.ink)
                     }
                 }
                 
@@ -336,61 +336,13 @@ struct ProfileTabView: View {
                                 .frame(width: 34, height: 34)
                                 .overlay(
                                     Circle()
-                                        .stroke(PoshTheme.Colors.gold, lineWidth: tone.rawValue == skinToneRaw ? 2 : 0)
+                                        .stroke(PoshTheme.Colors.border, lineWidth: tone.rawValue == skinToneRaw ? 2 : 0)
                                 )
                                 .onTapGesture {
                                     skinToneRaw = tone.rawValue
                                 }
                         }
                     }
-                }
-                
-                Divider()
-                    .padding(.vertical, 10)
-                
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("SUBSCRIPTION")
-                        .font(.system(size: 10, weight: .bold))
-                        .tracking(1)
-                        .foregroundColor(PoshTheme.Colors.gold)
-                    
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(SubscriptionService.shared.currentTier.rawValue.uppercased())
-                                .font(.system(size: 14, weight: .bold))
-                            Text(SubscriptionService.shared.currentTier == .free ? "Basic access" : "Premium member")
-                                .font(.system(size: 12))
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        if SubscriptionService.shared.currentTier != .free {
-                            Link(destination: URL(string: "https://apps.apple.com/account/subscriptions")!) {
-                                Text("MANAGE")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(PoshTheme.Colors.ink.opacity(0.05))
-                                    .cornerRadius(4)
-                            }
-                        } else {
-                            Button {
-                                showPaywall = true
-                            } label: {
-                                Text("UPGRADE")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 6)
-                                    .background(PoshTheme.Colors.gold)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(4)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(PoshTheme.Colors.canvas)
-                    .poshCard()
                 }
                 
                 Text("These settings help the AI generate a model that best represents you.")
