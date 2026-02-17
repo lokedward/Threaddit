@@ -84,6 +84,49 @@ struct ItemSelectionGridView: View {
         if selectedItems.contains(item.id) {
             selectedItems.remove(item.id)
         } else {
+            // Guardrail: Restrict selection based on category limits
+            if let categoryName = item.category?.name {
+                let singleSelectionCategories = ["Bottoms", "Pants", "Shoes", "Footwear"]
+                let doubleSelectionCategories = ["Tops"]
+                
+                // key check: Is the category restricted?
+                let isSingleLimit = singleSelectionCategories.contains(where: { $0.caseInsensitiveCompare(categoryName) == .orderedSame })
+                let isDoubleLimit = doubleSelectionCategories.contains(where: { $0.caseInsensitiveCompare(categoryName) == .orderedSame })
+                
+                if isSingleLimit || isDoubleLimit {
+                    // Find other selected items in the same category
+                    // items is sorted by dateAdded (newest first)
+                    let sameCategoryItems = items.filter { otherItem in
+                        selectedItems.contains(otherItem.id) && 
+                        otherItem.category?.name == categoryName &&
+                        otherItem.id != item.id
+                    }
+                    
+                    if isSingleLimit {
+                        // Limit 1: Remove all others (Radio behavior)
+                        for conflict in sameCategoryItems {
+                            selectedItems.remove(conflict.id)
+                        }
+                    } else if isDoubleLimit {
+                        // Limit 2: If we already have 2 or more, remove oldest to make room
+                        let limit = 2
+                        if sameCategoryItems.count >= limit {
+                            // Calculate how many we need to drop. 
+                            // We are adding 1. So we need current + 1 <= limit.
+                            // If current == limit, remove 1.
+                            let numberToRemove = sameCategoryItems.count - limit + 1
+                            
+                            // Remove from the end (Oldest items by dateAdded)
+                            let itemsToRemove = sameCategoryItems.suffix(numberToRemove)
+                            
+                            for conflict in itemsToRemove {
+                                selectedItems.remove(conflict.id)
+                            }
+                        }
+                    }
+                }
+            }
+            
             selectedItems.insert(item.id)
         }
     }
