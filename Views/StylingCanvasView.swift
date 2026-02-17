@@ -222,7 +222,7 @@ struct StylingCanvasView: View {
     }
     
     func generateLook() {
-        guard !selectedItems.isEmpty else { return }
+        guard !selectedItems.isEmpty, !isGenerating else { return }
         
         let currentIds = Set(selectedItems.map { $0.id })
         

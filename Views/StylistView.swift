@@ -320,11 +320,8 @@ struct StylistView: View {
                 // 2. Generate the Inspo Image
                 let selectedClothingItems = items.filter { suggestedIDs.contains($0.id) }
                 if !selectedClothingItems.isEmpty {
-                    await MainActor.run {
-                        // Update message but keep transparent overlay (isStyling) active
-                        // instead of switching to canvas loader (isGenerating)
-                        self.dynamicLoadingMessage = LoadingMessageService.shared.randomMessage(for: .generation)
-                    }
+                    // We keep the same original styling message throughout the whole process 
+                    // to avoid the "double loading" message flip.
                     
                     let image = try await StylistService.shared.generateModelPhoto(
                         items: selectedClothingItems,
