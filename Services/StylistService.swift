@@ -121,7 +121,7 @@ class StylistService {
         let mood = UserDefaults.standard.string(forKey: "stylistMood") ?? ""
         
         // 3. Build Prompt
-        let timestamp = Date().timeIntervalSince1970
+        let timestamp = Int(Date().timeIntervalSince1970)
         let prompt = """
         You are a high-end personal stylist for a premium fashion app.
         
@@ -136,6 +136,9 @@ class StylistService {
         USER CLOSET:
         \(itemsInfo)
         
+        DIVERSITY INSTRUCTION: 
+        Generate a unique and distinct combination. Avoid repeating common pairings. Use the full variety of the user's closet.
+        
         INSTRUCTIONS:
         1. Select a complete look: one top, one bottom, one pair of shoes, and optional accessory/outerwear if density allows.
         2. Strictly follow the density: "Minimalist" means fewer basics; "Layered" means more accessories and outerwear.
@@ -144,10 +147,10 @@ class StylistService {
         {
           "ids": ["UUID-1", "UUID-2"],
           "explanation": "A very brief (1 sentence) stylish explanation of why this look fits the requested vibe and occasion.",
-          "visual_description": "A highly detailed visual description of the combined look. Describe the specific fabrics (e.g., 'heavyweight cotton', 'merino wool'), colors, textures, and fit (e.g. 'oversized', 'tapered') of the selected items as they would appear together. This is for a photorealistic image generator."
+          "visual_description": "A highly detailed visual description of the combined look. Describe the specific fabrics, colors, textures, and fit (e.g. 'oversized', 'tapered') of the selected items as they would appear together. Focus on the interplay of items."
         }
         
-        Randomization seed: \(timestamp)
+        Randomization seed: \(timestamp)_\(Int.random(in: 1...1000))
         
         Return pure JSON only. NO MARKDOWN.
         """
@@ -178,7 +181,7 @@ class StylistService {
     
     // MARK: - Core Pipeline
     
-    func generateModelPhoto(items: [ClothingItem], gender: Gender, preComputedDescription: String? = nil) async throws -> UIImage {
+    func generateModelPhoto(items: [ClothingItem], gender: Gender, preComputedDescription: String? = nil, bypassCache: Bool = false) async throws -> UIImage {
         guard !items.isEmpty else { throw StylistError.noItemsSelected }
         
         // Check usage limits
@@ -200,7 +203,7 @@ class StylistService {
         }
         
         // 2. Cache Check: Do we already have this exact outfit?
-        if let cachedImage = OutfitCacheService.shared.getCachedImage(for: items, gender: gender) {
+        if !bypassCache, let cachedImage = OutfitCacheService.shared.getCachedImage(for: items, gender: gender) {
             print("🚀 Outfit Cache Hit! Returning stored image.")
             return cachedImage
         }

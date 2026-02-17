@@ -77,8 +77,8 @@ struct StylingCanvasView: View {
                     // Regenerate or Reset button
                     HStack(spacing: 16) {
                         Button {
-                            // Always regenerate a new look
-                            generateLook()
+                            // If items haven't changed, user is intentionally asking for a different look/pose
+                            generateLook(bypassCache: !hasSelectionChanged)
                         } label: {
                             VStack(spacing: 4) {
                                 Image(systemName: hasSelectionChanged ? "sparkles" : "arrow.triangle.2.circlepath")
@@ -221,7 +221,7 @@ struct StylingCanvasView: View {
         }
     }
     
-    func generateLook() {
+    func generateLook(bypassCache: Bool = false) {
         guard !selectedItems.isEmpty, !isGenerating else { return }
         
         let currentIds = Set(selectedItems.map { $0.id })
@@ -234,7 +234,8 @@ struct StylingCanvasView: View {
             do {
                 let image = try await StylistService.shared.generateModelPhoto(
                     items: selectedItems,
-                    gender: gender
+                    gender: gender,
+                    bypassCache: bypassCache
                 )
                 
                 await MainActor.run {
