@@ -176,6 +176,7 @@ struct StylistView: View {
                             }
                     )
                 }
+                .allowsHitTesting(!isStyling)
                 
                 if showingUsagePopup {
                     Color.black.opacity(0.01)
@@ -335,7 +336,6 @@ struct StylistView: View {
                             self.generatedImage = image
                             self.isStyling = false // Dismiss global overlay only when done
                             self.isSaved = false
-                            SubscriptionService.shared.recordGeneration()
                         }
                         
                         // Haptic feedback
