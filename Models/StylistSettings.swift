@@ -371,6 +371,7 @@ extension Array {
 
 struct ProfileTabView: View {
     @Binding var showPaywall: Bool
+    @StateObject private var notificationManager = NotificationManager.shared
     
     // Core Identity
     @AppStorage("stylistModelGender") private var genderRaw = "female"
@@ -390,6 +391,28 @@ struct ProfileTabView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 32) {
+                
+                // SECTION 0: NOTIFICATIONS
+                VStack(alignment: .leading, spacing: 12) {
+                    SectionHeader(title: "NOTIFICATIONS")
+                    
+                    Toggle(isOn: $notificationManager.isNightOutEnabled) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Night Out Nudges")
+                                .font(.system(size: 14))
+                                .foregroundColor(PoshTheme.Colors.ink)
+                            Text("Get a reminder on Thu & Fri evenings to plan your look.")
+                                .font(.caption)
+                                .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
+                        }
+                    }
+                    .toggleStyle(SwitchToggleStyle(tint: PoshTheme.Colors.gold))
+                    .onChange(of: notificationManager.isNightOutEnabled) { oldValue, newValue in
+                        if newValue {
+                            notificationManager.requestAuthorization()
+                        }
+                    }
+                }
                 
                 // SECTION 1: IDENTITY
                 VStack(alignment: .leading, spacing: 20) {

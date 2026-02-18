@@ -108,6 +108,9 @@ struct ContentView: View {
                 preselectedCategory = nil
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NavigateToStylist"))) { _ in
+            selectedTab = 2 // Switch to Stylist Tab
+        }
     }
 }
 
