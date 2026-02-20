@@ -54,15 +54,23 @@ enum SkinTone: String, CaseIterable, Identifiable {
 }
 
 enum ModelHairStyle: String, CaseIterable, Identifiable {
-    case straight = "Straight"
-    case wavy = "Wavy"
-    case curly = "Curly"
-    case short = "Short/Pixie"
-    case bob = "Bob Cut"
-    case updo = "Bun/Updo"
-    case bald = "Bald/Shaved"
+    case short = "Short / Cropped"
+    case medium = "Medium Length"
+    case long = "Long & Flowing"
+    case tied = "Tied Back / Updo"
+    case bald = "Bald / Shaved"
     
     var id: String { rawValue }
+    
+    var promptDescription: String {
+        switch self {
+        case .short: return "short cropped"
+        case .medium: return "medium length"
+        case .long: return "long flowing"
+        case .tied: return "tied back/updo"
+        case .bald: return "bald/shaved head"
+        }
+    }
 }
 
 enum ModelHairColor: String, CaseIterable, Identifiable {
@@ -202,9 +210,9 @@ enum StylingDensity: String, CaseIterable, Identifiable {
 }
 
 enum StylistTab: String, CaseIterable, Identifiable {
-    case closet = "CLOSET"
-    case styling = "STYLING"
-    case model = "MODEL"
+    case closet = "MY CLOSET"
+    case styling = "AI STYLIST"
+    case model = "PREFERENCES"
     
     var id: String { rawValue }
 }
@@ -382,7 +390,7 @@ struct ProfileTabView: View {
     
     // Hair
     @AppStorage("stylistHairColor") private var hairColorRaw = ModelHairColor.brown.rawValue
-    @AppStorage("stylistHairStyle") private var hairStyleRaw = ModelHairStyle.wavy.rawValue
+    @AppStorage("stylistHairStyle") private var hairStyleRaw = ModelHairStyle.medium.rawValue
     
     // Vibe
     @AppStorage("stylistEnvironment") private var environmentRaw = ModelEnvironment.studio.rawValue

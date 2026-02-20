@@ -277,7 +277,7 @@ class StylistService {
     // New Parameters
     @AppStorage("stylistAgeGroup") private var ageGroupRaw = ModelAgeGroup.millennial.rawValue
     @AppStorage("stylistHairColor") private var hairColorRaw = ModelHairColor.brown.rawValue
-    @AppStorage("stylistHairStyle") private var hairStyleRaw = ModelHairStyle.wavy.rawValue
+    @AppStorage("stylistHairStyle") private var hairStyleRaw = ModelHairStyle.medium.rawValue
     @AppStorage("stylistEnvironment") private var environmentRaw = ModelEnvironment.studio.rawValue
     @AppStorage("stylistFraming") private var framingRaw = ModelFraming.neckDown.rawValue
     
@@ -291,7 +291,7 @@ class StylistService {
         let ageGroup = ModelAgeGroup(rawValue: ageGroupRaw) ?? .millennial
         
         let hairColor = ModelHairColor(rawValue: hairColorRaw) ?? .brown
-        let hairStyle = ModelHairStyle(rawValue: hairStyleRaw) ?? .wavy
+        let hairStyle = ModelHairStyle(rawValue: hairStyleRaw) ?? .medium
         let environment = ModelEnvironment(rawValue: environmentRaw) ?? .studio
         let framing = ModelFraming(rawValue: framingRaw) ?? .neckDown
         
@@ -301,7 +301,7 @@ class StylistService {
         <IMAGE_GENERATION_REQUEST>
         Editorial fashion photography\(framing.promptDescription) shot
         Model: \(ageGroup.promptDescription) \(height.promptDescription) \(genderStr) model, \(skinTone.promptDescription), \(bodyType.promptDescription).
-        Hair: \(hairColor.rawValue) \(hairStyle.rawValue) hair.
+        Hair: \(hairColor.rawValue) \(hairStyle.promptDescription) hair.
         Outfit: \(description).
         Setting: \(environment.promptDescription), blurred depth of field.
         Lighting: Cinematic lighting fitting the environment, 8k, highly detailed, photorealistic.
