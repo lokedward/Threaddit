@@ -16,6 +16,7 @@ struct BulkCompletionModalView: View {
                 VStack(spacing: 12) {
                     Text(itemsAdded == 1 ? "ITEM ADDED" : "UPLOAD COMPLETE")
                         .poshHeadline(size: 16)
+                        .padding(.top, 40)
                     
                     Rectangle()
                         .fill(PoshTheme.Colors.gold)
