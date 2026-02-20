@@ -28,7 +28,7 @@ struct CategoryManagementView: View {
                             
                             Spacer()
                             
-                            Text("\(category.items.count) items")
+                            Text("\((category.items ?? []).count) items")
                                 .font(.system(size: 11, weight: .bold))
                                 .tracking(1)
                                 .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
@@ -131,7 +131,7 @@ struct CategoryManagementView: View {
             }
         } message: {
             if let category = categoryToDelete {
-                Text("Deleting \"\(category.name)\" will move \(category.items.count) items to uncategorized.")
+                Text("Deleting \"\(category.name)\" will move \((category.items ?? []).count) items to uncategorized.")
             }
         }
     }

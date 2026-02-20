@@ -14,7 +14,7 @@ struct CategoryGridView: View {
     ]
     
     private var sortedItems: [ClothingItem] {
-        category.items.sorted { $0.dateAdded > $1.dateAdded }
+        (category.items ?? []).sorted { $0.dateAdded > $1.dateAdded }
     }
     
     var body: some View {

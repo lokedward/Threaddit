@@ -16,14 +16,13 @@ struct HomeView: View {
     @Query private var allItems: [ClothingItem]
     @Query(sort: \Outfit.createdAt, order: .reverse) private var outfits: [Outfit]
     
-    // Computed property to check if the wardrobe is truly empty (no items in any category)
     private var isWardrobeEmpty: Bool {
-        categories.allSatisfy { $0.items.isEmpty }
+        categories.allSatisfy { $0.items?.isEmpty ?? true }
     }
     
     private var sortedCategories: [Category] {
-        let active = categories.filter { !$0.items.isEmpty }
-        let empty = categories.filter { $0.items.isEmpty }
+        let active = categories.filter { !($0.items?.isEmpty ?? true) }
+        let empty = categories.filter { $0.items?.isEmpty ?? true }
         return active + empty
     }
     

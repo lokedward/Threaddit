@@ -17,11 +17,11 @@ struct CategoryShelfView: View {
         // Default to expanded for roomier feel
         self._isExpanded = State(initialValue: true)
     }
-    
+
     private var sortedItems: [ClothingItem] {
-        category.items.sorted { $0.dateAdded > $1.dateAdded }
+        (category.items ?? []).sorted { $0.dateAdded > $1.dateAdded }
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Header
@@ -32,15 +32,15 @@ struct CategoryShelfView: View {
             } label: {
                 HStack(alignment: .center) {
                     Text(category.name)
-                        .poshHeadline(size: 20)
-                    
-                    Text("\(category.items.count)")
+                        if let items = category.items, !items.isEmpty {
+                    Text("\(items.count)")
                         .font(.system(size: 13, weight: .medium))
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.8))
                         .padding(.horizontal, 8)
                         .padding(.vertical, 2)
                         .background(PoshTheme.Colors.ink.opacity(0.1))
                         .clipShape(Capsule())
+                        }
                     
                     Spacer()
                     
