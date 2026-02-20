@@ -23,10 +23,9 @@ class ClosetDataService {
         tags: [String] = [],
         context: ModelContext
     ) async throws {
-        // 1. Save image to disk (async cache) and get compressed data
+        // 1. Get compressed data for CloudKit external storage
         let compressionQuality: CGFloat = 0.8
-        guard let imageData = image.jpegData(compressionQuality: compressionQuality),
-              let imageID = await imageStorage.saveImage(image, data: imageData) else {
+        guard let imageData = image.jpegData(compressionQuality: compressionQuality) else {
             throw DataError.imageSaveFailed
         }
         
@@ -36,7 +35,7 @@ class ClosetDataService {
             category: category,
             brand: brand,
             size: size,
-            imageID: imageID,
+            imageID: UUID(), // Placeholder since CloudKit uses imageData now
             imageData: imageData,
             tags: tags
         )
@@ -70,13 +69,8 @@ class ClosetDataService {
             // Remove old image from cache/disk
             imageStorage.deleteImage(withID: item.imageID)
             
-            // Save new image
-            if let newID = imageStorage.saveImage(image, data: imageData) {
-                item.imageID = newID
-                item.imageData = imageData
-            } else {
-                throw DataError.imageSaveFailed
-            }
+            // Link new image via CloudKit external storage
+            item.imageData = imageData
         }
         
         try context.save()

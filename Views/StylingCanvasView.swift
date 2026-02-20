@@ -299,14 +299,12 @@ struct StylingCanvasView: View {
             let compressionQuality: CGFloat = 0.8
             guard let imageData = image.jpegData(compressionQuality: compressionQuality) else { return }
             
-            if let imageID = await ImageStorageService.shared.saveImage(image, data: imageData) {
-                // Create Outfit
-                let outfit = Outfit(generatedImageID: imageID, imageData: imageData, items: selectedItems)
-                modelContext.insert(outfit)
-                
-                await MainActor.run {
-                    isSaved = true
-                }
+            // Create Outfit and rely purely on CloudKit imageData
+            let outfit = Outfit(generatedImageID: UUID(), imageData: imageData, items: selectedItems)
+            modelContext.insert(outfit)
+            
+            await MainActor.run {
+                isSaved = true
             }
         }
     }

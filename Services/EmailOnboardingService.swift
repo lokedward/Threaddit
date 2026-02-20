@@ -245,16 +245,13 @@ class EmailOnboardingService: ObservableObject {
                 continue
             }
             
-            // Save image
-            let imageID = UUID()
-            await ImageStorageService.shared.saveImage(uiImage, withID: imageID)
-            
-            // Create ClothingItem
+            // Create ClothingItem (Relying purely on imageData now for CloudKit sync)
             let item = ClothingItem(
                 name: product.name,
                 brand: product.brand,
                 size: product.size,
-                imageID: imageID,
+                imageID: UUID(), // Placeholder
+                imageData: imageData, // The compressed external storage data
                 tags: product.tags
             )
             
