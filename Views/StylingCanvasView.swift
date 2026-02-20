@@ -295,9 +295,13 @@ struct StylingCanvasView: View {
         guard let image = generatedImage else { return }
         
         Task {
-            if let imageID = await ImageStorageService.shared.saveImage(image) {
+            // First compress the image
+            let compressionQuality: CGFloat = 0.8
+            guard let imageData = image.jpegData(compressionQuality: compressionQuality) else { return }
+            
+            if let imageID = await ImageStorageService.shared.saveImage(image, data: imageData) {
                 // Create Outfit
-                let outfit = Outfit(generatedImageID: imageID, items: selectedItems)
+                let outfit = Outfit(generatedImageID: imageID, imageData: imageData, items: selectedItems)
                 modelContext.insert(outfit)
                 
                 await MainActor.run {
@@ -314,10 +318,12 @@ struct StylingCanvasView: View {
         errorMessage = nil
         
         Task {
-            // 1. Fetch images using legacy sync call or async if available
+            // 1. Fetch images using SwiftData or async cache
             var rawImages: [UIImage] = []
             for item in selectedItems {
-                if let img = await ImageStorageService.shared.loadImage(withID: item.imageID) {
+                if let data = item.imageData, let img = UIImage(data: data) {
+                    rawImages.append(img)
+                } else if let img = await ImageStorageService.shared.loadImage(withID: item.imageID) {
                     rawImages.append(img)
                 }
             }

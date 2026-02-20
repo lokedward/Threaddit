@@ -11,6 +11,10 @@ final class ClothingItem {
     var brand: String?
     var size: String?
     var imageID: UUID
+    
+    @Attribute(.externalStorage)
+    var imageData: Data?
+    
     var dateAdded: Date
     var tags: [String]
     
@@ -27,6 +31,7 @@ final class ClothingItem {
         brand: String? = nil,
         size: String? = nil,
         imageID: UUID = UUID(),
+        imageData: Data? = nil,
         dateAdded: Date = Date(),
         tags: [String] = []
     ) {
@@ -36,6 +41,7 @@ final class ClothingItem {
         self.brand = brand
         self.size = size
         self.imageID = imageID
+        self.imageData = imageData
         self.dateAdded = dateAdded
         self.tags = tags
     }

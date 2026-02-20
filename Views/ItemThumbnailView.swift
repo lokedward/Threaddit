@@ -76,7 +76,11 @@ struct ItemThumbnailView: View {
     
     private func loadImage() {
         Task {
-            if let loaded = await ImageStorageService.shared.loadImage(withID: item.imageID) {
+            if let data = item.imageData, let loaded = UIImage(data: data) {
+                await MainActor.run {
+                    self.image = loaded
+                }
+            } else if let loaded = await ImageStorageService.shared.loadImage(withID: item.imageID) {
                 await MainActor.run {
                     self.image = loaded
                 }

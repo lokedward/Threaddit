@@ -17,8 +17,6 @@ struct SettingsView: View {
     @AppStorage("hasCompletedStudioOnboarding") private var hasCompletedStudioOnboarding = false
     
     @State private var showingClearConfirmation = false
-    @State private var showingExportSheet = false
-    @State private var exportURL: URL?
     @State private var showingEmailImport = false
     @State private var showPaywall = false
     
@@ -207,17 +205,18 @@ struct SettingsView: View {
                                 .foregroundColor(PoshTheme.Colors.ink.opacity(0.6))
                             
                             VStack(spacing: 0) {
-                                Button {
-                                    exportData()
-                                } label: {
-                                    HStack {
-                                        Label("EXPORT CATEGORIES (JSON)", systemImage: "square.and.arrow.up")
-                                            .font(.system(size: 13, weight: .semibold))
-                                            .tracking(1)
-                                        Spacer()
-                                    }
-                                    .padding()
+                                HStack {
+                                    Label("iCLOUD SYNC", systemImage: "icloud.fill")
+                                        .font(.system(size: 13, weight: .semibold))
+                                        .tracking(1)
+                                        .foregroundColor(PoshTheme.Colors.ink)
+                                    Spacer()
+                                    Text("ENABLED")
+                                        .font(.system(size: 12, weight: .bold))
+                                        .tracking(1)
+                                        .foregroundColor(.green)
                                 }
+                                .padding()
                                 
                                 Divider().padding(.horizontal)
                                 
@@ -282,11 +281,6 @@ struct SettingsView: View {
             } message: {
                 Text("This will permanently delete all your clothing items and custom categories. This cannot be undone.")
             }
-            .sheet(isPresented: $showingExportSheet) {
-                if let url = exportURL {
-                    ShareSheet(activityItems: [url])
-                }
-            }
             /*
             .sheet(isPresented: $showingEmailImport) {
                 EmailImportView()
@@ -299,42 +293,7 @@ struct SettingsView: View {
 
     }
     
-    private func exportData() {
-        var exportData: [[String: Any]] = []
-        
-        for item in allItems {
-            var itemDict: [String: Any] = [
-                "id": item.id.uuidString,
-                "name": item.name,
-                "dateAdded": ISO8601DateFormatter().string(from: item.dateAdded),
-                "tags": item.tags
-            ]
-            
-            if let brand = item.brand {
-                itemDict["brand"] = brand
-            }
-            if let size = item.size {
-                itemDict["size"] = size
-            }
-            if let category = item.category {
-                itemDict["category"] = category.name
-            }
-            
-            exportData.append(itemDict)
-        }
-        
-        do {
-            let jsonData = try JSONSerialization.data(withJSONObject: exportData, options: .prettyPrinted)
-            
-            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("threadlist_export.json")
-            try jsonData.write(to: tempURL)
-            
-            exportURL = tempURL
-            showingExportSheet = true
-        } catch {
-            print("Export error: \(error)")
-        }
-    }
+
     
     private func clearAllData() {
         // Delete all images

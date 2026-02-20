@@ -118,7 +118,9 @@ struct OutfitDetailView: View {
             var rawImages: [UIImage] = []
             // Using the outfit items array loaded via SwiftData relationship
             for item in outfit.items {
-                if let img = await ImageStorageService.shared.loadImage(withID: item.imageID) {
+                if let data = item.imageData, let img = UIImage(data: data) {
+                    rawImages.append(img)
+                } else if let img = await ImageStorageService.shared.loadImage(withID: item.imageID) {
                     rawImages.append(img)
                 }
             }

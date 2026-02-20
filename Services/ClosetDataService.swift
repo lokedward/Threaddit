@@ -23,8 +23,10 @@ class ClosetDataService {
         tags: [String] = [],
         context: ModelContext
     ) async throws {
-        // 1. Save image to disk (async to avoid blocking main thread)
-        guard let imageID = await imageStorage.saveImage(image) else {
+        // 1. Save image to disk (async cache) and get compressed data
+        let compressionQuality: CGFloat = 0.8
+        guard let imageData = image.jpegData(compressionQuality: compressionQuality),
+              let imageID = await imageStorage.saveImage(image, data: imageData) else {
             throw DataError.imageSaveFailed
         }
         
@@ -35,6 +37,7 @@ class ClosetDataService {
             brand: brand,
             size: size,
             imageID: imageID,
+            imageData: imageData,
             tags: tags
         )
         
@@ -60,12 +63,17 @@ class ClosetDataService {
         item.tags = tags
         
         if let image = newImage {
-            // Remove old image
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                throw DataError.imageSaveFailed
+            }
+            
+            // Remove old image from cache/disk
             imageStorage.deleteImage(withID: item.imageID)
             
             // Save new image
-            if let newID = imageStorage.saveImage(image) {
+            if let newID = imageStorage.saveImage(image, data: imageData) {
                 item.imageID = newID
+                item.imageData = imageData
             } else {
                 throw DataError.imageSaveFailed
             }

@@ -356,9 +356,19 @@ struct ItemDetailView: View {
     
     private func loadImage() {
         Task {
-            let loaded = await ImageStorageService.shared.loadImage(withID: item.imageID)
-            await MainActor.run {
-                self.itemImage = loaded
+            // First try SwiftData property (CloudKit syncs this directly)
+            if let data = item.imageData, let cloudImage = UIImage(data: data) {
+                await MainActor.run {
+                    self.itemImage = cloudImage
+                }
+            } else {
+                // Fallback to local storage
+                let loaded = await ImageStorageService.shared.loadImage(withID: item.imageID)
+                await MainActor.run {
+                    self.itemImage = loaded
+                    // Optional: Backfill data?
+                    // if let loaded = loaded { item.imageData = loaded.jpegData(compressionQuality: 0.8) }
+                }
             }
         }
     }

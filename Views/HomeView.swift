@@ -159,13 +159,20 @@ struct HomeView: View {
             ScrollView(.horizontal, showsIndicators: false) {
                 LazyHStack(spacing: 16) {
                     ForEach(outfits) { outfit in
-                        if let imageID = outfit.generatedImageID,
-                           let image = ImageStorageService.shared.loadImage(withID: imageID) {
-                            
+                        let image: UIImage? = {
+                            if let data = outfit.imageData, let img = UIImage(data: data) {
+                                return img
+                            } else if let id = outfit.generatedImageID {
+                                return ImageStorageService.shared.loadImage(withID: id)
+                            }
+                            return nil
+                        }()
+                        
+                        if let validImage = image {
                             NavigationLink {
-                                OutfitDetailView(outfit: outfit, heroImage: image)
+                                OutfitDetailView(outfit: outfit, heroImage: validImage)
                             } label: {
-                                Image(uiImage: image)
+                                Image(uiImage: validImage)
                                     .resizable()
                                     .aspectRatio(contentMode: .fill)
                                     .frame(width: 140, height: 200) // Portrait Aspect

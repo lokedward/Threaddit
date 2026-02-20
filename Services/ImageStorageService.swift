@@ -27,14 +27,14 @@ class ImageStorageService {
     }
     
     /// Save an image with compression and return the UUID (Async version for performance)
-    func saveImage(_ image: UIImage, withID id: UUID = UUID()) async -> UUID? {
+    func saveImage(_ image: UIImage, withID id: UUID = UUID(), data providedData: Data? = nil) async -> UUID? {
         // Cache immediately on calling thread
         cache.setObject(image, forKey: id.uuidString as NSString)
         
         return await withCheckedContinuation { continuation in
             ioQueue.async {
-                // Perform compression on background queue
-                guard let data = image.jpegData(compressionQuality: 0.8) else {
+                // Use provided data or perform compression on background queue
+                guard let data = providedData ?? image.jpegData(compressionQuality: 0.8) else {
                     continuation.resume(returning: nil)
                     return
                 }
@@ -47,11 +47,11 @@ class ImageStorageService {
     }
     
     /// Save an image with compression and return the UUID (Legacy sync version)
-    func saveImage(_ image: UIImage, withID id: UUID = UUID()) -> UUID? {
+    func saveImage(_ image: UIImage, withID id: UUID = UUID(), data providedData: Data? = nil) -> UUID? {
         // Cache immediately
         cache.setObject(image, forKey: id.uuidString as NSString)
         
-        guard let data = image.jpegData(compressionQuality: 0.8) else {
+        guard let data = providedData ?? image.jpegData(compressionQuality: 0.8) else {
             return nil
         }
         

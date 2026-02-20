@@ -12,7 +12,11 @@ struct ThreadListApp: App {
             ClothingItem.self,
             Category.self
         ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        let modelConfiguration = ModelConfiguration(
+            schema: schema,
+            isStoredInMemoryOnly: false,
+            cloudKitDatabase: .automatic
+        )
         
         do {
             let container = try ModelContainer(for: schema, configurations: [modelConfiguration])
