@@ -736,7 +736,7 @@ class LululemonEmailParser: EmailParser {
         guard let html = email.htmlBody else { return [] }
         
         let genericParser = GenericEmailParser()
-        let products = genericParser.extractProducts(from: html)
+        let products = try await genericParser.extractProducts(from: email)
         
         // Ensure brand is mapped
         return products.map { product in
@@ -766,7 +766,7 @@ class AdidasEmailParser: EmailParser {
         
         // Fallback or explicit adidas pattern
         // It's often easier to leverage Generic parsing since we upgraded it to use context names
-        let genericProducts = genericParser.extractProducts(from: html)
+        let genericProducts = try await genericParser.extractProducts(from: email)
         
         // Ensure brand is mapped
         return genericProducts.map { product in
