@@ -237,7 +237,7 @@ struct StylingCanvasView: View {
         }
         .sheet(isPresented: $showShareSheet) {
             if let imageToShare = tearSheetImage {
-                ShareSheet(items: [imageToShare])
+                ShareSheet(activityItems: [imageToShare])
                     .presentationDetents([.medium, .large])
             }
         }

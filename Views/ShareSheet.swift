@@ -1,10 +1,10 @@
 import SwiftUI
 
 struct ShareSheet: UIViewControllerRepresentable {
-    var items: [Any]
+    var activityItems: [Any]
     
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: items, applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: activityItems, applicationActivities: nil)
         return controller
     }
     
