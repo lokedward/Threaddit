@@ -16,7 +16,7 @@ struct ThreadListApp: App {
         let modelConfiguration = ModelConfiguration(
             schema: schema,
             isStoredInMemoryOnly: false,
-            cloudKitDatabase: .specific("iCloud.com.edwardlok.threadlistsync")
+            cloudKitDatabase: .automatic
         )
         
         do {
