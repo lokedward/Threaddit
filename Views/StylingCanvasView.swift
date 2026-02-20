@@ -19,6 +19,11 @@ struct StylingCanvasView: View {
     @State private var dynamicLoadingMessage = "CREATING YOUR LOOK"
     @State private var lastGeneratedItemIds: Set<UUID> = []
     
+    // Share Sheet State
+    @State private var isProcessingShare = false
+    @State private var showShareSheet = false
+    @State private var tearSheetImage: UIImage?
+    
     let stylistService = StylistService.shared
     
     private var hasSelectionChanged: Bool {
@@ -74,8 +79,8 @@ struct StylingCanvasView: View {
                         .foregroundColor(PoshTheme.Colors.ink.opacity(0.4))
                         .padding(.bottom, 8)
                     
-                    // Regenerate or Reset button
-                    HStack(spacing: 16) {
+                    // Regenerate, Save or Share buttons
+                    HStack(spacing: 8) {
                         Button {
                             // If items haven't changed, user is intentionally asking for a different look/pose
                             generateLook(bypassCache: !hasSelectionChanged)
@@ -83,7 +88,7 @@ struct StylingCanvasView: View {
                             VStack(spacing: 4) {
                                 Image(systemName: hasSelectionChanged ? "sparkles" : "arrow.triangle.2.circlepath")
                                     .font(.system(size: 20))
-                                Text(hasSelectionChanged ? "GENERATE NEW LOOK" : "TRY NEW LOOK")
+                                Text(hasSelectionChanged ? "NEW" : "RETRY")
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(1.5)
                             }
@@ -100,7 +105,7 @@ struct StylingCanvasView: View {
                             VStack(spacing: 4) {
                                 Image(systemName: isSaved ? "heart.fill" : "heart")
                                     .font(.system(size: 20))
-                                Text(isSaved ? "SAVED" : "SAVE LOOK")
+                                Text(isSaved ? "SAVED" : "SAVE")
                                     .font(.system(size: 10, weight: .bold))
                                     .tracking(1.5)
                             }
@@ -112,6 +117,30 @@ struct StylingCanvasView: View {
                             .shadow(color: .black.opacity(0.1), radius: 4, x: 0, y: 2)
                         }
                         .disabled(isSaved)
+                        
+                        Button {
+                            shareOutfit()
+                        } label: {
+                            VStack(spacing: 4) {
+                                if isProcessingShare {
+                                    ProgressView()
+                                        .tint(PoshTheme.Colors.ink)
+                                        .frame(height: 20)
+                                } else {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 20))
+                                }
+                                Text("SHARE")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .tracking(1.5)
+                            }
+                            .foregroundColor(PoshTheme.Colors.ink)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.white)
+                            .poshCard()
+                        }
+                        .disabled(isProcessingShare)
                     }
                     .padding(.horizontal)
                     .padding(.bottom)
@@ -206,6 +235,12 @@ struct StylingCanvasView: View {
         .sheet(isPresented: $showUpgradePrompt) {
             PaywallView()
         }
+        .sheet(isPresented: $showShareSheet) {
+            if let imageToShare = tearSheetImage {
+                ShareSheet(items: [imageToShare])
+                    .presentationDetents([.medium, .large])
+            }
+        }
     }
     
     private var usageMessage: String {
@@ -261,7 +296,6 @@ struct StylingCanvasView: View {
         guard let image = generatedImage else { return }
         
         Task {
-            // Save image to disk
             if let imageID = await ImageStorageService.shared.saveImage(image) {
                 // Create Outfit
                 let outfit = Outfit(generatedImageID: imageID, items: selectedItems)
@@ -270,6 +304,47 @@ struct StylingCanvasView: View {
                 await MainActor.run {
                     isSaved = true
                 }
+            }
+        }
+    }
+    
+    private func shareOutfit() {
+        guard let aiImage = generatedImage else { return }
+        
+        isProcessingShare = true
+        errorMessage = nil
+        
+        Task {
+            // 1. Fetch images using legacy sync call or async if available
+            var rawImages: [UIImage] = []
+            for item in selectedItems {
+                if let img = await ImageStorageService.shared.loadImage(withID: item.imageID) {
+                    rawImages.append(img)
+                }
+            }
+            
+            // 2. Process cutouts
+            let cutouts = try? await ImageProcessingService.shared.processClothingImages(rawImages)
+            
+            // 3. Render View on Main thread
+            await MainActor.run {
+                let tearSheet = OutfitTearSheet(
+                    heroImage: aiImage,
+                    cutoutImages: cutouts ?? rawImages,
+                    title: "Curated Look".uppercased()
+                )
+                
+                let renderer = ImageRenderer(content: tearSheet)
+                renderer.scale = 3.0 // High res scale for sharing
+                
+                if let cgImage = renderer.cgImage {
+                    self.tearSheetImage = UIImage(cgImage: cgImage)
+                    self.showShareSheet = true
+                } else {
+                    self.errorMessage = "Failed to render share image."
+                }
+                
+                self.isProcessingShare = false
             }
         }
     }
