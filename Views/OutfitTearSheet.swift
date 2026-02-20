@@ -79,17 +79,31 @@ struct OutfitTearSheet: View {
                 
                 // Footer
                 HStack {
-                    Text("curated on threadlist")
-                        .font(.custom("Georgia", size: 20))
-                        .tracking(2)
-                        .foregroundColor(.black.opacity(0.6))
+                    HStack {
+                        Text("curated on threadlist")
+                            .font(.custom("Georgia", size: 18))
+                            .tracking(2)
+                            .foregroundColor(.black.opacity(0.85))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.85))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
                     
                     Spacer()
                     
-                    Text(Date().formatted(.dateTime.day().month().year()))
-                        .font(.system(size: 16, weight: .light))
-                        .tracking(3)
-                        .foregroundColor(.black.opacity(0.5))
+                    HStack {
+                        Text(Date().formatted(.dateTime.day().month().year()))
+                            .font(.system(size: 14, weight: .semibold))
+                            .tracking(3)
+                            .foregroundColor(.black.opacity(0.85))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.85))
+                    .cornerRadius(20)
+                    .shadow(color: .black.opacity(0.08), radius: 8, x: 0, y: 4)
                 }
                 .padding(.horizontal, 56)
                 .padding(.bottom, 60)
