@@ -307,6 +307,7 @@ class StylistService {
         Outfit: \(description).
         Setting: \(environment.promptDescription), blurred depth of field.
         Lighting: Cinematic lighting fitting the environment, 8k, highly detailed, photorealistic.
+        Angle: Front-facing, model must be facing the camera directly.
         Safety: Strictly fashion-related. No nudity, no violence, no inappropriate content.
         
         CRITICAL INSTRUCTION:

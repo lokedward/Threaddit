@@ -27,18 +27,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                PoshTheme.Colors.canvas.ignoresSafeArea()
-                
-                // Subtle Background Branding
-                Image("brand_logo")
-                    .renderingMode(.template)
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(width: 100)
-                    .foregroundColor(PoshTheme.Colors.ink)
-                    .opacity(0.12) // Increased for better visibility as "black on light"
-                    .padding(.bottom, 80)
-                
+                PoshTheme.Colors.canvas.ignoresSafeArea()            
                 ScrollView {
                     VStack(spacing: 24) {
                         // Membership Section
