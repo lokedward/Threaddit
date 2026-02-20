@@ -244,6 +244,11 @@ struct StylingCanvasView: View {
     
     private var usageMessage: String {
         let service = SubscriptionService.shared
+        
+        if service.currentTier == .atelier {
+            return "UNLIMITED LOOKS AVAILABLE"
+        }
+        
         let used = service.currentTier.limitPeriod == .monthly ? service.monthlyGenerationCount : service.generationCount
         let limit = service.currentTier.styleMeLimit
         
