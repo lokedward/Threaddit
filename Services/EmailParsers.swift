@@ -759,9 +759,6 @@ class LululemonEmailParser: EmailParser {
 
 class AdidasEmailParser: EmailParser {
     func extractProducts(from email: GmailMessage) async throws -> [ProductData] {
-        guard let html = email.htmlBody else { return [] }
-        
-        var products: [ProductData] = []
         let genericParser = GenericEmailParser()
         
         // Fallback or explicit adidas pattern
